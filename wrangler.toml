@@ -25,6 +25,6 @@ migrations_dir = "worker/migrations"
 # Google Cloud Console > APIs & Services > Credentials > OAuth client ID (Web). Public value.
 GOOGLE_CLIENT_ID = "606855341495-7ejam7rdcd8ulijffsiv1gk4fb4865ni.apps.googleusercontent.com"
 VAPID_PUBLIC_KEY = "BCkSqtcIqWkAuSFMeDfeOuZmvVjHwjDL6ahPPJ9BD43M8wro_SEwcryEgjH93g6u8aCWHqhN0HAwbprHUJ_Php0"
-VAPID_SUBJECT = "https://gym-management-system.workers.dev"
+VAPID_SUBJECT = "https://gym-management-system.eatright-reminders.workers.dev"
 ALLOW_GYM_SIGNUP = "0"
 # Secrets (set with `npx wrangler secret put NAME`, never committed): VAPID_PRIVATE_JWK, PLATFORM_ADMIN_EMAILS
