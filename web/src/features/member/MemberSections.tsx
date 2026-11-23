@@ -21,7 +21,7 @@ export function MembershipHero({ summary, today, chainEnd }: { summary: StateSum
   const ringUnit = covered ? (left === 0 ? "last day" : left === 1 ? "day left" : "days left") : summary.state === "UPCOMING" ? "days to start" : "days left";
 
   return (
-    <div className="card card--pad enter" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
+    <div className="hero-card hero-card--ring enter">
       <Ring value={covered ? Math.max(left, 1) : 0} max={total} number={ringNumber} unit={ringUnit} color={RING_COLOR[summary.state]} />
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
         <StateBadge state={summary.state} />

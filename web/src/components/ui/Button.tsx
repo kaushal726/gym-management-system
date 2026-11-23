@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link } from "../../lib/router.tsx";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "danger-ghost";
+type Variant = "primary" | "accent" | "secondary" | "ghost" | "danger" | "danger-ghost";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;

@@ -1,6 +1,6 @@
 /* The staff app frame: sidebar on desktop; top bar, bottom nav and a "More" sheet on phones. */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { FiBarChart2, FiCheckSquare, FiHome, FiLayers, FiLogOut, FiGrid, FiMenu, FiPhoneCall, FiRefreshCw, FiRepeat, FiSettings, FiShield, FiUserCheck, FiUsers } from "react-icons/fi";
+import { FiBarChart2, FiCheckSquare, FiHome, FiLayers, FiLogOut, FiGrid, FiMenu, FiPhoneCall, FiPlus, FiRefreshCw, FiRepeat, FiSettings, FiShield, FiUserCheck, FiUsers } from "react-icons/fi";
 import type { GymSettings } from "../../../../shared/api.ts";
 import type { StaffRole } from "../../../../shared/constants.ts";
 import { syncCheckins } from "../../lib/offlineCheckins.ts";
@@ -12,6 +12,7 @@ import { Avatar, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
 import { Button, ButtonLink, IconButton } from "../../components/ui/Button.tsx";
 import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
+import { BrandMark } from "../../components/ui/Brand.tsx";
 import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { ApiRequestError } from "../../lib/api.ts";
 import { formatDate } from "../../lib/format.ts";
@@ -176,13 +177,16 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
       <div className="shell">
         <aside className="shell__sidebar" aria-label="Main">
           <div className="brand">
-            <img className="brand__mark" src="/icon.svg" alt="" />
+            <BrandMark size={36} />
             <div style={{ minWidth: 0 }}>
               <div className="brand__name">{gym.data.name}</div>
               <div className="brand__sub">{ROLE_LABEL[staff.role]}</div>
             </div>
           </div>
-          <nav className="side-nav">
+          <ButtonLink href={`${base}/members?add=1`} variant="accent" block icon={<FiPlus />}>
+            Add member
+          </ButtonLink>
+          <nav className="side-nav" style={{ marginTop: 16 }}>
             {items
               .filter((i) => i.group === "main")
               .map((i) => (
@@ -228,9 +232,14 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
 
         <div className="shell__main">
           <header className="topbar topbar--mobile">
-            <img src="/icon.svg" alt="" width={28} height={28} style={{ borderRadius: 8 }} />
-            <span className="topbar__title">{current?.label === "Today" || !current ? gym.data.name : current.label}</span>
-            <Avatar name={session!.user!.name} src={session!.user!.pictureUrl} size={30} />
+            <BrandMark size={32} />
+            <span className="topbar__center">
+              <span className="topbar__title">{current?.label === "Today" || !current ? gym.data.name : current.label}</span>
+              {current && current.label !== "Today" && <span className="topbar__sub">{gym.data.name}</span>}
+            </span>
+            <Link href={`${base}/members?add=1`} className="topbar__add" aria-label="Add member" title="Add member">
+              <FiPlus />
+            </Link>
           </header>
           <div className="shell__scroll">
             {isOwner && (staff.access === "EXPIRING" || staff.access === "GRACE") && <PlanBanner access={staff.access} validTill={staff.validTill} />}
