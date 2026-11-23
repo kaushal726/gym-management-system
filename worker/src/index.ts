@@ -52,7 +52,7 @@ app.notFound(() => {
 });
 
 app.onError((err, c) => {
-  if (err instanceof ApiError) return c.json({ error: err.message, ...(err.field ? { field: err.field } : {}) }, err.status);
+  if (err instanceof ApiError) return c.json({ error: err.message, ...(err.field ? { field: err.field } : {}), ...(err.code ? { code: err.code } : {}) }, err.status);
   if (err instanceof SyntaxError) return c.json({ error: MESSAGES.badInput }, 400);
   const message = err instanceof Error ? err.message : String(err);
   if (message.includes("UNIQUE constraint failed")) return c.json({ error: MESSAGES.conflict }, 409);

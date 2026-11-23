@@ -13,7 +13,7 @@ import { StaffPage } from "./StaffPage.tsx";
 import { SettingsPage } from "./SettingsPage.tsx";
 import { AuditPage } from "./AuditPage.tsx";
 import { useAdmin } from "./AdminShell.tsx";
-import { ErrorState } from "../../components/ui/Feedback.tsx";
+import { EmptyState } from "../../components/ui/Feedback.tsx";
 
 const PAGES: Record<string, () => ReactNode> = {
   "": () => <TodayPage />,
@@ -23,13 +23,19 @@ const PAGES: Record<string, () => ReactNode> = {
   plans: () => <PlansPage />,
   reports: () => <OwnerOnly><ReportsPage /></OwnerOnly>,
   staff: () => <OwnerOnly><StaffPage /></OwnerOnly>,
-  settings: () => <OwnerOnly><SettingsPage /></OwnerOnly>,
+  settings: () => <SettingsPage />,
   audit: () => <OwnerOnly><AuditPage /></OwnerOnly>,
 };
 
 function OwnerOnly({ children }: { children: ReactNode }) {
   const { isOwner } = useAdmin();
-  return isOwner ? <>{children}</> : <div className="page"><ErrorState message="Only the owner can open this page." /></div>;
+  return isOwner ? (
+    <>{children}</>
+  ) : (
+    <div className="page">
+      <EmptyState art="locked" title="Only the owner can open this" text="Sales, reports, staff and the audit log are for the gym owner." />
+    </div>
+  );
 }
 
 export default function AdminApp({ path }: { path: string }) {
@@ -39,5 +45,11 @@ export default function AdminApp({ path }: { path: string }) {
   const gymId = detail?.gymId ?? section?.gymId ?? home?.gymId;
   if (!gymId) return null;
   const page = detail ? <MemberDetailPage key={detail.memberId} memberId={detail.memberId} /> : (PAGES[section?.section ?? ""] ?? PAGES[""])();
-  return <AdminShell gymId={gymId}>{page}</AdminShell>;
+  return (
+    <AdminShell gymId={gymId}>
+      <div key={path} className="route-enter">
+        {page}
+      </div>
+    </AdminShell>
+  );
 }

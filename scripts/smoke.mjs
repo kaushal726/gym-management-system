@@ -281,8 +281,11 @@ for (const path of ["/reports/collections", "/audit", "/staff", "/export/members
   r = await trainer.get(`${G}${path}`);
   ok(r.status === 403, `trainer cannot open ${path}`);
 }
-r = await trainer.patch(`${G}/settings`, { name: "x" });
-ok(r.status === 403, "trainer cannot change settings");
+r = await owner.get(`${G}/settings`);
+r = await trainer.patch(`${G}/settings`, { ...r.body, upiId: "newupi@okhdfc" });
+ok(r.status === 200, "trainer can change gym settings, UPI ID included");
+r = await owner.get(`${G}/audit`);
+ok(r.body.items.some((a) => a.action === "SETTINGS_EDIT" && a.actorName === "Trainer Vikram"), "the settings change is in the owner's audit log with who made it");
 r = await trainer.post(`${G}/members/${raviId}/checkin`, {});
 ok(r.status === 200, "trainer checks a member in at the desk");
 
@@ -294,5 +297,66 @@ r = await owner.patch(`${G}/staff/${encodeURIComponent(`manager-${RUN}@gymdesk.t
 ok(r.status === 200, "owner removes the manager");
 r = await manager.get(`${G}/dashboard`);
 ok(r.status === 404, "removed manager loses access immediately");
+
+// Platform console: one owner per gym, never the admin; pause, expiry, archive and owner change
+r = await admin.post("/api/platform/gyms", { name: "Admin Gym", slug: `admin-${RUN}`, ownerEmail: "admin@gymdesk.test" });
+ok(r.status === 400 && r.body.field === "ownerEmail", "the platform admin email cannot own a gym", r.body);
+r = await owner.get(`/api/platform/gyms/${gymId}`);
+ok(r.status === 403, "a gym owner cannot open the platform console");
+r = await admin.get(`/api/platform/gyms/${gymId}`);
+ok(r.status === 200 && r.body.gym.members >= 2 && r.body.gym.activeMembers >= 1 && r.body.gym.ownerEmail === `owner-${RUN}@gymdesk.test`, "platform sees the gym's health", r.body.gym);
+ok(!JSON.stringify(r.body.gym).match(/due|collect|revenue/i), "platform gym summary carries no member money");
+const P = `/api/platform/gyms/${gymId}`;
+r = await admin.post(`${P}/pause`, { reason: "Payment pending" });
+ok(r.status === 200, "platform pauses the gym");
+r = await owner.get(`${G}/dashboard`);
+ok(r.status === 403 && r.body.code === "GYM_PAUSED", "paused gym locks staff out", r.body);
+r = await owner.get("/api/auth/session");
+ok(r.body.staffOf.find((s) => s.gymId === gymId)?.access === "PAUSED", "session tells the app the gym is paused");
+r = await ravi.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 200, "members still see their own page while paused");
+r = await ravi.post(`/api/public/gyms/${slug}/checkin`, {});
+ok(r.status === 403 && r.body.code === "GYM_PAUSED", "no check-ins while paused");
+r = await (await new Client("Late Joiner").login(`late-${RUN}@gymdesk.test`)).post(`/api/public/gyms/${slug}/register`, { ...reg, name: "Late Joiner", phone: phone(5) });
+ok(r.status === 403 && r.body.code === "GYM_PAUSED", "no new sign-ups while paused");
+r = await admin.post(`${P}/pause`, { reason: "again" });
+ok(r.status === 409, "an already paused gym cannot be paused again");
+r = await admin.post(`${P}/resume`, { reason: "Paid" });
+ok(r.status === 200, "platform resumes the gym");
+r = await owner.get(`${G}/dashboard`);
+ok(r.status === 200, "staff are back in after resume");
+
+r = await admin.post(`${P}/billing`, { planName: "Monthly", amountPaise: 99900, mode: "UPI", paidOn: today, validTill: addDays(today, -10), note: null });
+ok(r.status === 201, "platform records a payment with an old valid-till");
+r = await owner.get(`${G}/dashboard`);
+ok(r.status === 403, "a gym past its valid-till and grace pauses itself");
+r = await admin.post(`${P}/billing`, { planName: "Yearly", amountPaise: 999900, mode: "BANK", paidOn: today, validTill: addDays(today, 365), note: "Annual" });
+ok(r.status === 201, "platform records the renewal");
+r = await owner.get(`${G}/dashboard`);
+ok(r.status === 200, "renewal reopens the gym at once");
+r = await admin.get(P);
+ok(r.body.billing.length === 2 && r.body.gym.saasPlanName === "Yearly", "billing history and plan are kept");
+
+r = await admin.post(`${P}/archive`, { reason: "Gym closed" });
+ok(r.status === 200, "platform archives the gym");
+r = await owner.get(`${G}/dashboard`);
+ok(r.status === 403, "archived gym locks staff out");
+r = await admin.post(`${P}/restore`, { reason: "Reopened" });
+ok(r.status === 200, "platform restores the gym");
+
+r = await admin.patch(P, { name: "Iron Paradise Gym", slug: `${slug}-new`, phone: null, address: "MG Road" });
+ok(r.status === 200, "platform edits the gym's details");
+r = await ravi.get(`/api/public/gyms/${slug}-new`);
+ok(r.status === 200 && r.body.gym.name === "Iron Paradise Gym", "the new web address works");
+
+r = await admin.post(`${P}/owner`, { email: "admin@gymdesk.test", reason: "x" });
+ok(r.status === 400, "ownership cannot go to the platform admin");
+const newOwner = await new Client("New Owner").login(`newowner-${RUN}@gymdesk.test`);
+r = await admin.post(`${P}/owner`, { email: `newowner-${RUN}@gymdesk.test`, reason: "Gym sold" });
+ok(r.status === 200, "platform changes the gym owner");
+r = await owner.get(`${G}/dashboard`);
+ok(r.status === 404, "the old owner loses access at once");
+r = await newOwner.get(`${G}/reports/collections`);
+ok(r.status === 200, "the new owner has full owner access");
 
 console.log(`\nAll ${checks} checks passed.`);

@@ -4,10 +4,12 @@ import type { ApiErrorBody } from "../../../shared/api.ts";
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly field?: string;
-  constructor(status: number, message: string, field?: string) {
+  readonly code?: string;
+  constructor(status: number, message: string, field?: string, code?: string) {
     super(message);
     this.status = status;
     this.field = field;
+    this.code = code;
   }
 }
 
@@ -26,7 +28,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new ApiRequestError(0, OFFLINE_MESSAGE);
   }
   const data = (await res.json().catch(() => null)) as (T & ApiErrorBody) | null;
-  if (!res.ok) throw new ApiRequestError(res.status, data?.error ?? "Something went wrong. Please try again.", data?.field);
+  if (!res.ok) throw new ApiRequestError(res.status, data?.error ?? "Something went wrong. Please try again.", data?.field, data?.code);
   return data as T;
 }
 

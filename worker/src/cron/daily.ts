@@ -5,12 +5,13 @@ import { PENDING_EXPIRY_DAYS } from "../../../shared/constants.ts";
 import { addDays, hourIn, todayIn, type IsoDate } from "../../../shared/dates.ts";
 import { matchesFilter } from "../../../shared/filters.ts";
 import { formatRupees } from "../../../shared/money.ts";
-import { reminderMessage, remindersFor, type ReminderType } from "../../../shared/reminders.ts";
+import { displayDate, reminderMessage, remindersFor, type ReminderType } from "../../../shared/reminders.ts";
 import type { Env } from "../env.ts";
 import { newId, nowIso } from "../lib/ids.ts";
 import { loadRoster, toListItem, type RosterEntry } from "../db/queries.ts";
 import type { GymRow } from "../db/rows.ts";
 import { ownerUserIds } from "../push/notify.ts";
+import { gymAccess, gymIsOpen, saasReminderDue } from "../../../shared/saas.ts";
 
 interface QueuedReminder {
   entry: RosterEntry;
@@ -35,6 +36,13 @@ export async function runDailyForGym(env: Env, gym: GymRow, today: IsoDate): Pro
   const db = env.DB;
   const done = await db.prepare("SELECT 1 FROM gym_daily_runs WHERE gym_id = ?1 AND for_date = ?2").bind(gym.id, today).first();
   if (done) return { gymId: gym.id, leads: 0, reminders: 0, skipped: true };
+
+  // A paused or archived gym sends nothing: no member reminders, no digest, no leads.
+  const saas = { status: gym.status, validTill: gym.valid_till };
+  if (!gymIsOpen(gymAccess(saas, today))) {
+    await db.prepare("INSERT OR IGNORE INTO gym_daily_runs (gym_id, for_date, ran_at) VALUES (?1, ?2, ?3)").bind(gym.id, today, nowIso()).run();
+    return { gymId: gym.id, leads: 0, reminders: 0, skipped: true };
+  }
 
   // 1. Pending requests nobody activated within a week become leads (kept for a follow-up call).
   const cutoff = `${addDays(today, 1 - PENDING_EXPIRY_DAYS)}T00:00:00.000Z`;
@@ -108,8 +116,14 @@ export async function runDailyForGym(env: Env, gym: GymRow, today: IsoDate): Pro
   const count = (f: Parameters<typeof matchesFilter>[1]) => items.filter((i) => matchesFilter(i, f)).length;
   const duesTotal = items.filter((i) => !i.archived).reduce((sum, i) => sum + i.duePaise, 0);
   const parts = [`${count("pending")} pending`, `${count("expiring")} expiring this week`, `${count("grace")} in grace`, `${formatRupees(duesTotal)} dues`];
-  for (const ownerId of await ownerUserIds(db, gym.id)) {
+  const owners = await ownerUserIds(db, gym.id);
+  for (const ownerId of owners) {
     writes.push(queueStatement(db, gym.id, ownerId, `Good morning, ${gym.name}`, `${parts.join(" · ")}. ${fresh.length} follow-ups today.`, `/admin/${gym.id}`, `digest-${today}`, null));
+    if (saasReminderDue(saas, today) && gym.valid_till) {
+      writes.push(
+        queueStatement(db, gym.id, ownerId, "GymDesk plan renewal", `Your GymDesk plan ends on ${displayDate(gym.valid_till)}. Please renew to keep the desk running without a break.`, `/admin/${gym.id}`, `saas-${today}`, null),
+      );
+    }
   }
 
   writes.push(db.prepare("INSERT OR IGNORE INTO gym_daily_runs (gym_id, for_date, ran_at) VALUES (?1, ?2, ?3)").bind(gym.id, today, nowIso()));
@@ -122,6 +136,7 @@ export async function runDueGyms(env: Env, now: Date, forcedDate?: IsoDate): Pro
   const { results: gyms } = await env.DB.prepare("SELECT * FROM gyms").all<GymRow>();
   const results: DailyResult[] = [];
   for (const gym of gyms) {
+    if (gym.status === "ARCHIVED") continue;
     if (!forcedDate && hourIn(gym.timezone, now) < gym.reminder_hour) continue;
     results.push(await runDailyForGym(env, gym, forcedDate ?? todayIn(gym.timezone, now)));
   }

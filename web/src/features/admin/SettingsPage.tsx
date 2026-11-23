@@ -20,7 +20,7 @@ function hourLabel(h: number): string {
 }
 
 export function SettingsPage() {
-  const { gymId, gym, reloadGym } = useAdmin();
+  const { gymId, gym, reloadGym, isOwner } = useAdmin();
   const toast = useToast();
   const [form, setForm] = useState(() => toForm(gym));
   const [busy, setBusy] = useState(false);
@@ -84,7 +84,7 @@ export function SettingsPage() {
       <div className="page-head">
         <div>
           <h1>Settings</h1>
-          <p>Only owners can change these.</p>
+          <p>{isOwner ? "Your team can change these too. You get a notification for every change they make." : "The owner gets a notification for every change."}</p>
         </div>
         <Button variant="primary" loading={busy} onClick={() => void save()}>
           Save changes

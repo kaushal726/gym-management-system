@@ -4,6 +4,7 @@ import { canVoid, dueOf, maxRefund, netPaid, rupeesToPaise, unusedValue, type Pa
 import { nextStartDate, overlapsLive, summarize, type SubDates } from "../shared/membership.ts";
 import { remindersFor } from "../shared/reminders.ts";
 import { normalizeIndianMobile } from "../shared/phone.ts";
+import { gymAccess, gymIsOpen, saasReminderDue } from "../shared/saas.ts";
 
 /** Small seeded generator so failures are reproducible. */
 function rng(seed: number) {
@@ -194,5 +195,28 @@ describe("phone", () => {
     expect(normalizeIndianMobile("09876543210")).toBe("9876543210");
     expect(normalizeIndianMobile("12345")).toBeNull();
     expect(normalizeIndianMobile("5876543210")).toBeNull();
+  });
+});
+
+describe("gym SaaS access", () => {
+  const gym = (validTill: string | null, status: "ACTIVE" | "PAUSED" | "ARCHIVED" = "ACTIVE") => ({ status, validTill });
+  it("moves from active to expiring, grace and paused around valid_till", () => {
+    expect(gymAccess(gym("2026-12-31"), "2026-12-01")).toBe("ACTIVE");
+    expect(gymAccess(gym("2026-12-31"), "2026-12-24")).toBe("EXPIRING");
+    expect(gymAccess(gym("2026-12-31"), "2026-12-31")).toBe("EXPIRING");
+    expect(gymAccess(gym("2026-12-31"), "2027-01-03")).toBe("GRACE");
+    expect(gymAccess(gym("2026-12-31"), "2027-01-04")).toBe("PAUSED");
+    expect(gymAccess(gym(null), "2030-01-01")).toBe("ACTIVE");
+  });
+  it("honours manual pause and archive whatever the date", () => {
+    expect(gymAccess(gym("2099-01-01", "PAUSED"), "2026-12-01")).toBe("PAUSED");
+    expect(gymAccess(gym(null, "ARCHIVED"), "2026-12-01")).toBe("ARCHIVED");
+    expect(gymIsOpen("GRACE")).toBe(true);
+    expect(gymIsOpen("PAUSED")).toBe(false);
+  });
+  it("reminds the owner a week before, the day before, on the day and the day after", () => {
+    const days = everyDay("2026-12-01", "2027-01-10").filter((d) => saasReminderDue(gym("2026-12-31"), d));
+    expect(days).toEqual(["2026-12-24", "2026-12-30", "2026-12-31", "2027-01-01"]);
+    expect(saasReminderDue(gym("2026-12-31", "PAUSED"), "2026-12-24")).toBe(false);
   });
 });

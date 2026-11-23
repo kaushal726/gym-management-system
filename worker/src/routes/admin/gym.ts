@@ -15,6 +15,7 @@ import { asBody, bool, email, int, oneOf, optionalInt, optionalNum, optionalText
 import { loadRoster, paymentsBetween, toListItem } from "../../db/queries.ts";
 import { toGymSettings, toPayment, toPlan, type PlanRow } from "../../db/rows.ts";
 import { toCsv } from "../../lib/csv.ts";
+import { notifyUsers, ownerUserIds } from "../../push/notify.ts";
 
 export const gymRoutes = new Hono<AppEnv>();
 
@@ -149,8 +150,8 @@ gymRoutes.post("/followups/:followupId/contacted", async (c) => {
 
 gymRoutes.get("/settings", (c) => c.json<GymSettings>(toGymSettings(c.get("staff").gym)));
 
-gymRoutes.patch("/settings", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+gymRoutes.patch("/settings", async (c) => {
+  const { gym, role } = c.get("staff");
   const user = currentUser(c);
   const body = asBody(await c.req.json());
   const timezone = text(body, "timezone", { max: 64 });
@@ -195,8 +196,35 @@ gymRoutes.patch("/settings", ownerOnly, async (c) => {
     ),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "SETTINGS_EDIT", entity: "gym", entityId: gym.id, before: toGymSettings(gym), after: next }),
   ]);
+  // Staff may change settings, the UPI ID included, so the owner hears about every change at once.
+  const changed = settingsChanges(toGymSettings(gym), next);
+  if (role !== "OWNER" && changed.length) {
+    c.executionCtx.waitUntil(
+      ownerUserIds(c.env.DB, gym.id).then((ids) =>
+        notifyUsers(c.env, ids, { title: changed.includes("UPI ID") ? "UPI ID changed" : "Gym settings changed", body: `${user.name} changed ${changed.join(", ")}.`, url: `/admin/${gym.id}/settings`, tag: `settings-${nowIso()}` }),
+      ),
+    );
+  }
   return c.json({ ok: true });
 });
+
+const SETTING_LABELS: Partial<Record<keyof GymSettings, string>> = {
+  name: "gym name",
+  phone: "desk phone",
+  address: "address",
+  upiId: "UPI ID",
+  graceDays: "grace days",
+  joiningFeePaise: "joining fee",
+  checkinEnabled: "check-in",
+  checkinLat: "check-in location",
+  checkinRadiusM: "check-in radius",
+  reminderHour: "reminder time",
+};
+
+/** Names of the settings that differ, for the owner's notification. */
+function settingsChanges(before: GymSettings, after: Partial<GymSettings>): string[] {
+  return (Object.keys(SETTING_LABELS) as (keyof GymSettings)[]).filter((k) => k in after && before[k] !== after[k]).map((k) => SETTING_LABELS[k]!);
+}
 
 gymRoutes.get("/plans", async (c) => {
   const { gym } = c.get("staff");

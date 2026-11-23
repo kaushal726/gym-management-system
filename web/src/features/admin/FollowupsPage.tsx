@@ -69,7 +69,7 @@ export function FollowupsPage() {
         ) : loading && !data ? (
           <ListSkeleton rows={5} />
         ) : data && data.items.length === 0 ? (
-          <EmptyState icon={<FiPhoneCall />} title={view === "open" ? "All caught up" : "Nothing here yet"} text={view === "open" ? "Reminders for expiring plans, dues and leads appear here each morning." : undefined} />
+          <EmptyState icon={<FiPhoneCall />} art={view === "open" ? "happy" : undefined} title={view === "open" ? "All caught up" : "Nothing here yet"} text={view === "open" ? "Reminders for expiring plans, dues and leads appear here each morning." : undefined} />
         ) : (
           <div className="list">
             {data?.items.map((f) => (

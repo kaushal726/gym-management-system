@@ -1,9 +1,14 @@
 /* Creates a gym: used by the platform console and by self-serve signup. */
 import { useState } from "react";
+import { addDays } from "../../../../shared/dates.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
+import { localToday } from "../../lib/format.ts";
 import { Button } from "../../components/ui/Button.tsx";
 import { TextField } from "../../components/ui/Field.tsx";
 import { Notice } from "../../components/ui/Feedback.tsx";
+
+/** Default free trial for a newly onboarded gym. */
+const TRIAL_DAYS = 30;
 
 function slugify(name: string): string {
   return name
@@ -20,6 +25,8 @@ export function GymCreateForm({ endpoint, askOwner, onCreated }: { endpoint: str
   const [ownerEmail, setOwnerEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [planName, setPlanName] = useState("Trial");
+  const [validTill, setValidTill] = useState(() => addDays(localToday(), TRIAL_DAYS));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
   const fieldError = (f: string) => (error?.field === f ? error.message : null);
@@ -28,7 +35,14 @@ export function GymCreateForm({ endpoint, askOwner, onCreated }: { endpoint: str
     setBusy(true);
     setError(null);
     try {
-      const res = await api.post<{ id: string }>(endpoint, { name, slug, ownerEmail: askOwner ? ownerEmail : undefined, phone: phone || null, address: address || null });
+      const res = await api.post<{ id: string }>(endpoint, {
+        name,
+        slug,
+        ownerEmail: askOwner ? ownerEmail : undefined,
+        phone: phone || null,
+        address: address || null,
+        ...(askOwner ? { saasPlanName: planName || null, validTill: validTill || null } : {}),
+      });
       onCreated(res.id);
     } catch (err) {
       setError({ message: errorMessage(err), field: errorField(err) });
@@ -64,7 +78,15 @@ export function GymCreateForm({ endpoint, askOwner, onCreated }: { endpoint: str
         hint={`${window.location.origin}/g/${slug || "your-gym"}`}
         error={fieldError("slug")}
       />
-      {askOwner && <TextField label="Owner's Google email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} error={fieldError("ownerEmail")} />}
+      {askOwner && (
+        <>
+          <TextField label="Gym owner's Gmail" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} error={fieldError("ownerEmail")} hint="Only this Gmail can open the gym. They add their own staff." />
+          <div className="form-grid form-grid--2">
+            <TextField label="GymDesk plan" value={planName} onChange={(e) => setPlanName(e.target.value)} placeholder="Trial, Monthly, Yearly" error={fieldError("saasPlanName")} />
+            <TextField label="Valid till" type="date" value={validTill} onChange={(e) => setValidTill(e.target.value)} error={fieldError("validTill")} hint="Pauses itself 3 days after this." />
+          </div>
+        </>
+      )}
       <div className="form-grid form-grid--2">
         <TextField label="Desk phone" optional type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={fieldError("phone")} />
         <TextField label="Area / address" optional value={address} onChange={(e) => setAddress(e.target.value)} error={fieldError("address")} />

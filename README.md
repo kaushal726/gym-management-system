@@ -7,7 +7,8 @@ GymDesk: membership management for Indian gyms, running entirely on free tiers.
 - Every morning a cron prepares expiry, dues, lead and "not coming" reminders. It sends them as web push and puts them on the owner's **follow-up list** with one-tap WhatsApp.
 - The owner gets a push for every payment a manager records. Voids, refunds and cancellations need the owner and a reason, and everything is in the audit log.
 - Members get a view-only page: days left, dues with a UPI QR, receipts and plan history.
-- The platform admin onboards each gym with **one main owner** email. Three staff roles. **Owner**: everything, and adds the team. **Manager** and **Trainer**: run the desk (members, plans, payments, check-ins) but never see sales, reports or the audit log.
+- **Platform console** (`/platform`, platform admin only): onboard gyms with **one main owner** Gmail (never the admin's own), set each gym's GymDesk plan and valid-till date, record what the gym paid, pause/resume, archive/restore, edit details, change the owner, and see each gym's health (members, active, pending, staff, last activity), never its money. A gym pauses itself 3 days after its valid-till; a paused gym locks its staff out and stops sign-ups, check-ins and reminders, while members can still see their own page.
+- The platform admin onboards each gym with **one main owner** email. Three staff roles. **Owner**: everything, and adds the team. **Manager** and **Trainer**: run the desk (members, plans, payments, check-ins, gym settings and the QR poster) but never see sales, reports or the audit log. The owner gets a push whenever staff change a setting.
 - Built for phones first (about 80% of use). Phones get an install card, either Android's install prompt or the iPhone "Add to Home Screen" steps.
 
 See [REQUIREMENTS.md](REQUIREMENTS.md) for the rules and [SCHEMA.md](SCHEMA.md) for the data model.
@@ -63,7 +64,7 @@ npm run typecheck && npm test
 npm run smoke
 ```
 
-`npm run smoke` runs 95 end-to-end API checks against the running `wrangler dev`. They cover registration, activation, dues, voids, refunds, freezes, renewals, PT, check-in, claim links, the cron (no duplicates), owner/manager/trainer permissions and staff removal.
+`npm run smoke` runs 121 end-to-end API checks against the running `wrangler dev`. They cover registration, activation, dues, voids, refunds, freezes, renewals, PT, check-in, claim links, the cron (no duplicates), owner/manager/trainer permissions, staff removal and the platform console (pause, expiry, archive, owner change).
 
 To run the daily job for any date locally (DEV_AUTH only), POST to `/api/dev/cron?date=YYYY-MM-DD`.
 

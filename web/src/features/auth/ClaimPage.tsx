@@ -1,14 +1,17 @@
 /* /claim/:token — links the person's Google account to the membership the desk created for them. */
 import { useState } from "react";
-import { FiLink, FiSlash } from "react-icons/fi";
+import { FiLink } from "react-icons/fi";
 import { api, errorMessage } from "../../lib/api.ts";
 import { navigate } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
 import { useSession } from "../../lib/session.tsx";
 import { NarrowLayout } from "../../components/layout/NarrowLayout.tsx";
 import { Button } from "../../components/ui/Button.tsx";
-import { EmptyState, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
+import { Notice, Skeleton } from "../../components/ui/Feedback.tsx";
 import { SignInCard } from "./SignInCard.tsx";
+import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
+import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
+import { MEMBER_POINTS } from "./authPoints.tsx";
 
 export function ClaimPage({ token }: { token: string }) {
   const { session, refresh } = useSession();
@@ -24,11 +27,7 @@ export function ClaimPage({ token }: { token: string }) {
     );
   }
   if (claim.error || !claim.data) {
-    return (
-      <NarrowLayout title="Link membership">
-        <EmptyState icon={<FiSlash />} title="This link has expired" text={claim.error?.message ?? "Please ask the desk for a new link."} />
-      </NarrowLayout>
-    );
+    return <StatusScreen art="locked" title="This link has expired" text="Links work once and for 7 days. Please ask the desk to send a new one on WhatsApp." />;
   }
   const { gymName, memberName } = claim.data;
   const link = async () => {
@@ -44,11 +43,16 @@ export function ClaimPage({ token }: { token: string }) {
       setBusy(false);
     }
   };
+  if (!session?.user) {
+    return (
+      <AuthLayout eyebrow={gymName} heading={`Hi ${memberName.split(" ")[0]}, your membership is ready.`} text="Sign in once and your plan, dues and receipts are always on your phone." points={MEMBER_POINTS}>
+        <SignInCard title="Continue with Google" subtitle="Use the Gmail you want to keep for this gym." />
+      </AuthLayout>
+    );
+  }
   return (
     <NarrowLayout title={gymName}>
-      {!session?.user ? (
-        <SignInCard title={`Hi ${memberName.split(" ")[0]}`} subtitle={`Sign in with Google to see your ${gymName} membership, dues and receipts.`} />
-      ) : (
+      {(
         <div className="card card--pad form-grid enter">
           <span className="state-box__icon" aria-hidden>
             <FiLink />

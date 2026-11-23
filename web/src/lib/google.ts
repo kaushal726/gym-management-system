@@ -48,5 +48,6 @@ export async function renderGoogleButton(parent: HTMLElement, clientId: string, 
     initializedFor = clientId;
   }
   parent.innerHTML = "";
-  id.renderButton(parent, { type: "standard", theme: "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(parent.clientWidth || 320, 400) });
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  id.renderButton(parent, { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(parent.clientWidth || 320, 400) });
 }
