@@ -1,0 +1,30 @@
+# GymDesk on Cloudflare's free plan: one Worker serves the web app (static assets) and the API, with D1 and an hourly cron.
+name = "gym-management-system"
+main = "worker/src/index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+# At :30 past every hour UTC, which is on the hour in India. Each gym runs once a day at its own reminder hour;
+# the other runs only send pushes that did not fit in the earlier ones.
+[triggers]
+crons = ["30 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-management-system"
+database_id = "8e0f6de2-6519-4a7a-a6fd-4a173a90a9d9"
+migrations_dir = "worker/migrations"
+
+[vars]
+# Google Cloud Console > APIs & Services > Credentials > OAuth client ID (Web). Public value.
+GOOGLE_CLIENT_ID = "606855341495-7ejam7rdcd8ulijffsiv1gk4fb4865ni.apps.googleusercontent.com"
+VAPID_PUBLIC_KEY = "BCkSqtcIqWkAuSFMeDfeOuZmvVjHwjDL6ahPPJ9BD43M8wro_SEwcryEgjH93g6u8aCWHqhN0HAwbprHUJ_Php0"
+VAPID_SUBJECT = "https://gym-management-system.workers.dev"
+ALLOW_GYM_SIGNUP = "0"
+# Secrets (set with `npx wrangler secret put NAME`, never committed): VAPID_PRIVATE_JWK, PLATFORM_ADMIN_EMAILS

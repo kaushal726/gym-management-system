@@ -1,7 +1,8 @@
-# GymDesk — Requirements (Phase 0, draft for confirmation)
+# GymDesk — Requirements
 
-Status: **draft**. Nothing is built until this file and `SCHEMA.md` are confirmed, and the
-open questions at the bottom are answered by the pilot gym's owner.
+Status: **built** (Phase 1 + 1.5 + the free parts of Phase 2, see section 9). The open questions
+in section 11 are for the pilot gym's owner. Their answers may change plans, fees or grace rules,
+but not the design.
 
 ## 1. Problem
 Indian gyms lose money in four places:
@@ -29,9 +30,10 @@ GymDesk fixes those four. Everything else is secondary.
 ## 3. Users and roles
 | Role | Can | Cannot |
 |---|---|---|
-| Platform admin (Kaushal) | Create a gym, invite its owner | See inside a gym unless invited |
-| Owner | Everything in their gym; edit/void payments (reason required); revenue; audit log; export | — |
+| Platform admin (Kaushal) | Onboard a gym with its one main owner email | See inside a gym unless invited |
+| Owner (one per gym) | Everything in their gym; add managers and trainers; edit/void payments (reason required); revenue; audit log; export | Add a second owner |
 | Manager | Add members, activate, renew, record payments, freeze, follow-up list | Edit/void payments, see revenue totals, audit log, export, staff, settings |
+| Trainer | Same as Manager: members, plans, payments, freezes, check-ins, follow-ups | Same limits as Manager: no sales or collection figures, reports, audit, staff, settings, voids, exports |
 | Member | View own data; turn push on/off; message the gym; sign out | Change any data |
 
 - `collected_by` on a payment is always the signed-in staff user.
@@ -95,7 +97,11 @@ Numbers are a hint, not proof (a photo of the QR works from anywhere).
 - Money: integer paise. Dues are computed, never stored:
   `due = final_price + joining_fee − sum(non-voided payments)`.
 - Dates: `YYYY-MM-DD` in the gym's timezone (default `Asia/Kolkata`).
-  `end = addMonths(start, n) − 1 day` (start 31 Jan, 1 month → ends 27 Feb, or 28 Feb in a leap year). Day-based plans: `end = start + n − 1`.
+  A month plan ends the day before the same date n months later. If that date doesn't exist, it ends
+  on the last day of the target month: 1 Mar → 31 Mar, 31 Mar → 30 Apr, 31 Jan → 28/29 Feb.
+  Day-based plans: `end = start + n − 1`.
+- Member status: `PENDING` (no plan yet), `JOINED` (has had a plan), `LEAD`, `REJECTED`. Whether they
+  are active, in grace or expired today is worked out from their plan dates, never stored.
 - Grace period: per gym, default 3 days after `end`. Member counted as "in grace".
 - Phone: unique per gym, stored as 10-digit Indian mobile (`+91` assumed). Changes go to history.
 - Plan price changes never touch existing subscriptions (they keep a snapshot).
@@ -108,7 +114,9 @@ Numbers are a hint, not proof (a photo of the QR works from anywhere).
 | Expiry −5, −1, 0 days | Member | Push + follow-up row |
 | Expired +3 days | Member | Push + follow-up row |
 | Renewal nudge +7, +15 days after expiry | Member | Push + follow-up row |
-| Dues > 0, every 3 days | Member | Push + follow-up row |
+| Dues > 0, every 3 days after the plan started | Member | Push + follow-up row |
+| Active plan but no check-in for 10 days (check-in on) | Member | Push + follow-up row |
+| Pending for 7 days → lead | Member | Push + follow-up row |
 | Morning digest (pending, expiring, in grace, dues) | Owner | Push |
 | Any payment recorded / edited / voided | Owner | Push, instant |
 
@@ -127,10 +135,24 @@ today's collection by staff and mode (owner only) · follow-up list with one-tap
 - Push works only on the deployed build; on iPhone only after "Add to Home Screen" (iOS 16.4+).
 - Privacy: consent stored with timestamp; a deletion request anonymises personal fields and keeps payment rows.
 
-## 9. Out of scope for MVP
-Phase 1.5: check-in feed, claim link, CSV export (download only), staff PIN on a shared desk phone.
-Phase 2: PT packages + trainer commission, offline check-in, multi-branch UI, self-serve gym
-signup + SaaS billing, email channel, churn alerts from attendance, geolocation check-in.
+## 9. What is built, and what is not
+Built:
+- **Phase 1:** everything above.
+- **Phase 1.5:** check-in feed, WhatsApp claim link, CSV export (download only).
+- **Phase 2:**
+  - PT packages with trainer commission in Reports
+  - offline desk check-in that syncs later
+  - a gym switcher for owners of several gyms (branches)
+  - self-serve gym signup (`ALLOW_GYM_SIGNUP=1`)
+  - "not coming for 10 days" alerts
+  - location check on check-in
+  - data deletion (DPDP)
+
+Not built, on purpose:
+- **SaaS billing:** it needs a payment gateway, which goes against "free only".
+- **Email reminders:** they need an outside email account.
+- **Staff PIN on a shared desk phone:** each staff member signs in with their own Google account, so `collected_by` stays honest.
+- **Ending a freeze early:** for now the owner cancels and re-adds the plan.
 
 ## 10. Known trade-off
 With no photo upload, a member who never signs in has no picture, so "two people on one
