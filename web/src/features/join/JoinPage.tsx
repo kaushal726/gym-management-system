@@ -52,7 +52,7 @@ export function JoinPage({ slug }: { slug: string }) {
   const { gym, member } = entry.data;
   if (!session?.user) {
     return (
-      <AuthLayout eyebrow={gym.address ?? undefined} heading={`Welcome to ${gym.name}`} text="Join in a minute, see your plan and get renewal reminders on your phone." points={MEMBER_POINTS}>
+      <AuthLayout preview="member" eyebrow={gym.address ?? undefined} heading={`Welcome to ${gym.name}`} text="Join in a minute, see your plan and get renewal reminders on your phone." points={MEMBER_POINTS}>
         <SignInCard title="Continue with Google" subtitle="New here or already a member, start by signing in." />
       </AuthLayout>
     );
@@ -60,6 +60,7 @@ export function JoinPage({ slug }: { slug: string }) {
   const heading = !member ? `Join ${gym.name}` : member.status === "JOINED" ? `Welcome back, ${member.name.split(" ")[0]}` : gym.name;
   return (
     <AuthLayout
+      preview="member"
       eyebrow={gym.address ?? undefined}
       heading={heading}
       text="Your plan, dues and receipts on your phone, and a reminder before your plan ends."

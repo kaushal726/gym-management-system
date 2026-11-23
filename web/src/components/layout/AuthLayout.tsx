@@ -2,6 +2,7 @@
  * split screen: a solid brand panel on the left, the sign-in card on the right, so nothing sits small in the middle. */
 import type { ReactNode } from "react";
 import { Brand } from "../ui/Brand.tsx";
+import { GymPreview, MemberPreview } from "./AuthPreview.tsx";
 
 export interface AuthPoint {
   icon: ReactNode;
@@ -19,6 +20,8 @@ interface Props {
   children: ReactNode;
   /** Shown under the card, e.g. who is signed in. */
   below?: ReactNode;
+  /** Which sample cards the desktop hero shows. */
+  preview?: "gym" | "member";
 }
 
 const FOOT = "Free to run · Works on any phone · Your data stays yours";
@@ -41,24 +44,19 @@ function PointsList({ points, className }: { points: AuthPoint[]; className: str
   );
 }
 
-export function AuthLayout({ eyebrow, heading, text, points, children, below }: Props) {
+export function AuthLayout({ eyebrow, heading, text, points, children, below, preview = "gym" }: Props) {
   return (
     <div className="auth">
       <section className="auth__brand" aria-label="About">
         <div className="auth__logo">
           <Brand size={40} tone="dark" />
         </div>
-        <div className="auth__hero">
-          <div className="auth__pitch enter">
-            {eyebrow && <p className="auth__eyebrow">{eyebrow}</p>}
-            <h1>{heading}</h1>
-            <p className="auth__text">{text}</p>
-          </div>
-          <div className="auth__hero-mark" aria-hidden>
-            <img src="/icon.svg" alt="" />
-          </div>
+        <div className="auth__pitch enter">
+          <p className="auth__eyebrow">{eyebrow ?? "Built for Indian gyms"}</p>
+          <h1>{heading}</h1>
+          <p className="auth__text">{text}</p>
         </div>
-        <PointsList points={points} className="auth__points auth__points--desktop" />
+        {preview === "member" ? <MemberPreview /> : <GymPreview />}
         <p className="auth__foot auth__foot--desktop">{FOOT}</p>
       </section>
       <main className="auth__panel">

@@ -31,7 +31,7 @@ export function Protected({ guard, children }: { guard: Guard; children: ReactNo
   if (!session?.user) {
     const s = SIGN_IN[guard];
     return (
-      <AuthLayout heading={s.heading} text={s.text} points={s.member ? MEMBER_POINTS : GYM_POINTS}>
+      <AuthLayout heading={s.heading} text={s.text} points={s.member ? MEMBER_POINTS : GYM_POINTS} preview={s.member ? "member" : "gym"}>
         <SignInCard title={s.title} subtitle={s.subtitle} />
       </AuthLayout>
     );

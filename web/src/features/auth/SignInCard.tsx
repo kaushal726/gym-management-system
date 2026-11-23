@@ -32,20 +32,25 @@ export function SignInCard({ title, subtitle }: { title: string; subtitle?: stri
   }, [config?.googleClientId, refresh]);
 
   return (
-    <div className="card card--pad enter" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="card signin enter">
       <div>
-        <h1>{title}</h1>
-        {subtitle && <p className="muted" style={{ marginTop: 6 }}>{subtitle}</p>}
+        <h2 className="signin__title">{title}</h2>
+        {subtitle && <p className="muted signin__sub">{subtitle}</p>}
       </div>
       {config?.googleClientId ? (
         <div ref={buttonBox} className="google-button" aria-busy={busy} />
       ) : (
         !config?.devLogin && <Notice tone="warning">Google sign-in is not set up yet. Please ask the gym.</Notice>
       )}
-      {config?.devLogin && <DevSignIn onDone={refresh} />}
+      {config?.devLogin && (
+        <details className="signin__dev">
+          <summary>Use a test account (local only)</summary>
+          <DevSignIn onDone={refresh} />
+        </details>
+      )}
       {error && <Notice tone="danger">{error}</Notice>}
-      <p className="muted" style={{ display: "flex", gap: 8, fontSize: 13 }}>
-        <FiLock aria-hidden style={{ flexShrink: 0, marginTop: 3 }} />
+      <p className="signin__privacy">
+        <FiLock aria-hidden />
         We only see your name, email and profile picture. We never read your Gmail.
       </p>
     </div>
@@ -81,7 +86,6 @@ function DevSignIn({ onDone }: { onDone: () => Promise<void> }) {
         void signIn(email);
       }}
     >
-      <Notice tone="info">Local test sign-in, only for made-up @gymdesk.test emails. It does not exist on the live site.</Notice>
       <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="owner@gymdesk.test" autoComplete="email" required />
       {error && <Notice tone="danger">{error}</Notice>}
       <Button type="submit" variant="primary" loading={busy} block>

@@ -1102,3 +1102,51 @@ a.stat:hover {
 .hero-card--ring h2 {
   color: #fff;
 }
+
+/* ---------- Sign-in card ---------- */
+.signin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+}
+.signin__title {
+  font-size: 28px;
+  font-weight: 800;
+}
+.signin__sub {
+  margin-top: 6px;
+  font-size: var(--text-base);
+}
+.signin__privacy {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-3);
+}
+.signin__privacy svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.signin__dev {
+  border-top: 1px dashed var(--border-strong);
+  padding-top: var(--space-4);
+}
+.signin__dev summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-3);
+  list-style: none;
+}
+.signin__dev summary::-webkit-details-marker {
+  display: none;
+}
+.signin__dev[open] summary {
+  margin-bottom: var(--space-4);
+}
+@media (min-width: 1024px) {
+  .signin {
+    padding: var(--space-8);
+  }
+}
