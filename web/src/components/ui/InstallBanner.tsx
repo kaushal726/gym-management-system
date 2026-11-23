@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FiDownload, FiShare, FiX } from "react-icons/fi";
 import { dismissInstall, promptInstall, useInstallMode } from "../../lib/install.ts";
 import { Button, IconButton } from "./Button.tsx";
+import { BrandMark } from "./Brand.tsx";
 
 export function InstallBanner({ text = "Open it like an app, straight from your home screen." }: { text?: string }) {
   const mode = useInstallMode();
@@ -14,7 +15,7 @@ export function InstallBanner({ text = "Open it like an app, straight from your 
   };
   return (
     <div className="card install enter" role="region" aria-label="Install the app">
-      <img src="/icon.svg" alt="" width={40} height={40} style={{ borderRadius: 11, flexShrink: 0 }} />
+      <BrandMark size={44} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <h3>Install GymDesk</h3>
         {mode === "prompt" ? (

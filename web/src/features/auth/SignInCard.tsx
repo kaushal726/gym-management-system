@@ -38,7 +38,7 @@ export function SignInCard({ title, subtitle }: { title: string; subtitle?: stri
         {subtitle && <p className="muted" style={{ marginTop: 6 }}>{subtitle}</p>}
       </div>
       {config?.googleClientId ? (
-        <div ref={buttonBox} style={{ minHeight: 44, display: "flex", justifyContent: "center" }} aria-busy={busy} />
+        <div ref={buttonBox} className="google-button" aria-busy={busy} />
       ) : (
         !config?.devLogin && <Notice tone="warning">Google sign-in is not set up yet. Please ask the gym.</Notice>
       )}

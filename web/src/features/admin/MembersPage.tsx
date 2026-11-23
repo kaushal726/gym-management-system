@@ -95,9 +95,6 @@ export function MembersPage() {
         )}
       </div>
 
-      <Button variant="primary" className="fab" icon={<FiPlus />} onClick={() => navigate(`${base}/members?add=1`)}>
-        Add
-      </Button>
 
       <MemberFormSheet
         open={addOpen}

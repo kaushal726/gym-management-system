@@ -5,6 +5,7 @@ import { useApi } from "../../lib/useApi.ts";
 import { Button } from "../../components/ui/Button.tsx";
 import { ErrorState, Skeleton } from "../../components/ui/Feedback.tsx";
 import { Qr } from "../../components/ui/Qr.tsx";
+import { Brand } from "../../components/ui/Brand.tsx";
 
 export function PosterPage({ slug }: { slug: string }) {
   const { data, error, reload } = useApi<GymEntry>(`/public/gyms/${slug}`);
@@ -14,7 +15,7 @@ export function PosterPage({ slug }: { slug: string }) {
   return (
     <div className="poster">
       <div className="poster__sheet">
-        <img src="/icon.svg" alt="" width={56} height={56} style={{ borderRadius: 14 }} />
+        <Brand size={56} />
         <h1 className="poster__title">{data.gym.name}</h1>
         <p className="poster__lead">{data.gym.checkinEnabled ? "Scan to join or check in" : "Scan to join"}</p>
         <Qr text={url} size={320} label="QR code for this gym" />

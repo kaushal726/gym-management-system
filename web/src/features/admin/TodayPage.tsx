@@ -1,5 +1,5 @@
 /* Today: the four numbers that matter, what's waiting at the desk, who expires this week and today's cash. */
-import { FiAlertTriangle, FiCheckCircle, FiClock, FiInbox, FiPhoneCall, FiUserPlus, FiUsers } from "react-icons/fi";
+import { FiAlertTriangle, FiCheckCircle, FiClock, FiInbox, FiPhoneCall, FiUsers } from "react-icons/fi";
 import type { Dashboard } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatDate } from "../../lib/format.ts";
@@ -7,7 +7,6 @@ import { Link } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
 import { useSession } from "../../lib/session.tsx";
 import { MODE_LABEL } from "../../lib/states.ts";
-import { ButtonLink } from "../../components/ui/Button.tsx";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/Feedback.tsx";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 import { useAdmin } from "./AdminShell.tsx";
@@ -42,17 +41,21 @@ export function TodayPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>{greeting()}, {session?.user?.name.split(" ")[0] ?? "there"}</h1>
-          <p>{data ? `${formatDate(data.today)} · ${gym.name}` : " "}</p>
+      <section className="hero-card enter">
+        <div className="hero-card__text">
+          <p className="hero-card__eyebrow">{data ? formatDate(data.today) : " "}</p>
+          <h1>
+            {greeting()}, <em>{session?.user?.name.split(" ")[0] ?? "there"}</em>
+          </h1>
+          {isOwner && data?.collectionToday ? (
+            <p className="hero-card__sub">
+              <CountUp value={data.collectionToday.totalPaise} format={formatRupees} /> collected today
+            </p>
+          ) : (
+            <p className="hero-card__sub">{data ? `${data.counts.active} active members · ${data.counts.pending} waiting at the desk` : gym.name}</p>
+          )}
         </div>
-        <div className="page-head__actions">
-          <ButtonLink href={`${base}/members?add=1`} variant="primary" icon={<FiUserPlus />}>
-            Add member
-          </ButtonLink>
-        </div>
-      </div>
+      </section>
 
       <InstallBanner text="Keep the desk one tap away on your phone." />
 

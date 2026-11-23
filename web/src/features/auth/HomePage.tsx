@@ -29,7 +29,15 @@ export function HomePage() {
   const { session, config } = useSession();
   if (!session?.user) {
     return (
-      <AuthLayout heading="Run your gym from your phone." text="Renewals, dues and reminders, sorted. Built for Indian gyms, free to run." points={GYM_POINTS}>
+      <AuthLayout
+        heading={
+          <>
+            Run your gym from your <em>phone.</em>
+          </>
+        }
+        text="Renewals, dues and reminders, sorted. Built for Indian gyms, free to run."
+        points={GYM_POINTS}
+      >
         <SignInCard title="Sign in" subtitle="Gym owners, staff and members all sign in with Google." />
       </AuthLayout>
     );

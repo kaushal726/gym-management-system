@@ -18,6 +18,8 @@ declare global {
 }
 
 let loading: Promise<void> | null = null;
+const GOOGLE_MIN_WIDTH = 200;
+const GOOGLE_MAX_WIDTH = 400;
 
 export function loadGoogle(): Promise<void> {
   if (window.google?.accounts?.id) return Promise.resolve();
@@ -49,5 +51,7 @@ export async function renderGoogleButton(parent: HTMLElement, clientId: string, 
   }
   parent.innerHTML = "";
   const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  id.renderButton(parent, { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", text: "continue_with", shape: "pill", width: Math.min(parent.clientWidth || 320, 400) });
+  // Google accepts 200-400px; measure the real box so the button fills it exactly and never spills out.
+  const width = Math.max(GOOGLE_MIN_WIDTH, Math.min(GOOGLE_MAX_WIDTH, Math.floor(parent.getBoundingClientRect().width) || GOOGLE_MAX_WIDTH));
+  id.renderButton(parent, { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", text: "continue_with", shape: "pill", width });
 }
