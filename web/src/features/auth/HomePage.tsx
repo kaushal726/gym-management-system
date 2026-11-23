@@ -1,7 +1,7 @@
 /* / — signed out: what GymDesk is and the sign-in. Signed in: straight to the one place this account belongs,
  * a short chooser when there are several, or a clear "no gym on this Gmail" with the account shown. */
 import type { ReactNode } from "react";
-import { PiArrowRightBold, PiBriefcaseBold, PiPlusCircleBold, PiUserBold } from "react-icons/pi";
+import { PiArrowRightBold, PiBriefcaseBold, PiIdentificationBadgeDuotone, PiPlusCircleBold, PiQrCodeDuotone, PiStorefrontDuotone, PiUserBold } from "react-icons/pi";
 import { Link, Redirect } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { ROLE_LABEL } from "../../lib/states.ts";
@@ -16,9 +16,9 @@ const SELLING_POINTS = ["QR join", "WhatsApp reminders", "Free to start"];
 
 /** What to do when a Gmail has no gym, for each kind of person. */
 const NEXT_STEPS = [
-  { who: "Gym owner", what: "Ask GymDesk to onboard your gym with this Gmail." },
-  { who: "Manager or trainer", what: "Ask your gym owner to add this Gmail under Staff." },
-  { who: "Member", what: "Scan the QR code at your gym's desk." },
+  { who: "Gym owner", what: "Ask GymDesk to onboard your gym with this Gmail.", icon: <PiStorefrontDuotone /> },
+  { who: "Manager or trainer", what: "Ask your gym owner to add this Gmail under Staff.", icon: <PiIdentificationBadgeDuotone /> },
+  { who: "Member", what: "Scan the QR code at your gym's desk.", icon: <PiQrCodeDuotone /> },
 ];
 
 interface Destination {
@@ -59,19 +59,35 @@ export function HomePage() {
   const none = destinations.length === 0;
   return (
     <AuthLayout
-      heading={`Hi ${first}, good to see you.`}
-      text={none ? "This Gmail isn't linked to a gym yet. Here's how to get in." : "Pick up where you left off. Everything for your gym is one tap away."}
+      heading={
+        <>
+          Hi <em>{first}</em>
+        </>
+      }
+      text={none ? "This Gmail isn't linked to a gym yet." : "Pick up where you left off."}
       points={GYM_POINTS}
+      fit
+      noArt
     >
-      {destinations.length === 0 ? (
-        <div className="card card--pad home-card">
-          <Illustration kind="lost" size={140} />
-          <h2>No gym on this Gmail yet</h2>
+      {none ? (
+        <div className="card card--pad home-card home-card--list">
+          <div className="home-empty">
+            <Illustration kind="lost" size={72} />
+            <div>
+              <h2>No gym here yet</h2>
+              <p className="muted">Here's how to get in.</p>
+            </div>
+          </div>
           <ul className="home-steps">
             {NEXT_STEPS.map((s) => (
               <li key={s.who}>
-                <strong>{s.who}</strong>
-                <span>{s.what}</span>
+                <span className="home-link__icon" aria-hidden>
+                  {s.icon}
+                </span>
+                <span className="list-row__main">
+                  <span className="list-row__title">{s.who}</span>
+                  <span className="list-row__sub home-steps__what">{s.what}</span>
+                </span>
               </li>
             ))}
           </ul>

@@ -36,4 +36,9 @@ export type PlanKind = (typeof PLAN_KINDS)[number];
 export const GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 export type Gender = (typeof GENDERS)[number];
 
+/** The time of day a member usually trains. */
+export const BATCHES = ["MORNING", "AFTERNOON", "EVENING", "NIGHT"] as const;
+export type Batch = (typeof BATCHES)[number];
+export const BATCH_LABEL: Record<Batch, string> = { MORNING: "Morning", AFTERNOON: "Afternoon", EVENING: "Evening", NIGHT: "Night" };
+
 export const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;

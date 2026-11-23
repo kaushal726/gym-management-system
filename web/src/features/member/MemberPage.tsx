@@ -13,6 +13,7 @@ import { EmptyState, ErrorState, Notice, Skeleton } from "../../components/ui/Fe
 import { Qr, upiLink } from "../../components/ui/Qr.tsx";
 import { FreezeList, MembershipHero, PaymentList, SubscriptionList, VisitSummary } from "./MemberSections.tsx";
 import { PushCard } from "./PushCard.tsx";
+import { BATCH_LABEL } from "../../../../shared/constants.ts";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 
 export function MemberPage({ gymId }: { gymId?: string }) {
@@ -75,12 +76,12 @@ function MemberView({ gymId }: { gymId: string }) {
       <div className="member-grid">
         <div className="member-grid__side">
           {pending ? (
-            <>
+            <div className="card card--pad form-grid">
               <Notice tone="info">Your request is with the desk. They will start your plan when you pay.</Notice>
               <ButtonLink href={`/g/${gym.slug}`} variant="primary" block>
                 Show my request
               </ButtonLink>
-            </>
+            </div>
           ) : (
             <MembershipHero summary={membership} today={data.today} chainEnd={chainEnd} />
           )}
@@ -172,6 +173,12 @@ function MemberView({ gymId }: { gymId: string }) {
                 <dd>{member.name}</dd>
                 <dt>Mobile</dt>
                 <dd className="tabular">{formatMobile(member.phone)}</dd>
+                {member.batch && (
+                  <>
+                    <dt>Batch</dt>
+                    <dd>{BATCH_LABEL[member.batch]}</dd>
+                  </>
+                )}
                 {member.emergencyName && (
                   <>
                     <dt>Emergency</dt>

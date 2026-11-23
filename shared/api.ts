@@ -3,7 +3,7 @@
 import type { IsoDate } from "./dates.ts";
 import type { Paise } from "./money.ts";
 import type { MembershipState } from "./membership.ts";
-import type { Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "./constants.ts";
+import type { Batch, Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "./constants.ts";
 import type { ReminderType } from "./reminders.ts";
 import type { GymAccess, GymStatus, SaasPaymentMode } from "./saas.ts";
 
@@ -78,6 +78,7 @@ export interface RegisterInput {
   emergencyPhone: string;
   guardianName: string | null;
   guardianPhone: string | null;
+  batch: Batch | null;
   consent: boolean;
 }
 
@@ -180,6 +181,7 @@ export interface MemberProfile {
   phone: string;
   dob: IsoDate | null;
   gender: Gender | null;
+  batch: Batch | null;
   emergencyName: string | null;
   emergencyPhone: string | null;
   guardianName: string | null;
@@ -226,6 +228,7 @@ export interface MemberListItem {
   duePaise: Paise;
   ptActive: boolean;
   lastVisit: IsoDate | null;
+  batch: Batch | null;
 }
 
 export const MEMBER_FILTERS = ["all", "pending", "active", "expiring", "grace", "expired", "dues", "frozen", "leads", "archived"] as const;
@@ -258,6 +261,7 @@ export interface MemberInput {
   guardianName: string | null;
   guardianPhone: string | null;
   email: string | null;
+  batch: Batch | null;
 }
 
 export interface ActivateInput {

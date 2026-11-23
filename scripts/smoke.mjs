@@ -606,4 +606,26 @@ r = await newOwner.patch(`${G}/subscriptions/${discountSub}`, { planId: monthly,
 ok(r.status === 200, "the owner moves only the start date", r.body);
 r = await newOwner.get(`${G}/members/${discountMember}`);
 ok(r.body.subscriptions.find((x) => x.id === discountSub).discountReason === "Friend of owner", "the original price note is kept", r.body.subscriptions);
+
+// Batch: the time of day a member trains, set at the desk or at QR sign-up.
+r = await newOwner.post(`${G}/members`, { name: "Batch Person", phone: phone(941), batch: "MORNING" });
+ok(r.status === 201, "the desk adds a member to the morning batch", r.body);
+const batchId = r.body.id;
+r = await newOwner.get(`${G}/members/${batchId}`);
+ok(r.body.member.batch === "MORNING", "the member shows the morning batch", r.body.member);
+r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: "NIGHT" });
+ok(r.status === 200, "the desk moves them to the night batch", r.body);
+r = await newOwner.get(`${G}/members?q=Batch%20Person`);
+ok(r.body.items.find((x) => x.id === batchId)?.batch === "NIGHT", "the member list shows the new batch", r.body.items);
+r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: "MIDNIGHT" });
+ok(r.status === 400 && r.body.field === "batch", "an unknown batch is refused", r.body);
+r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: null });
+r = await newOwner.get(`${G}/members/${batchId}`);
+ok(r.body.member.batch === null, "the batch can be cleared", r.body.member);
+const batchJoiner = await new Client("Batch Joiner").login(`batchjoin-${RUN}@gymdesk.test`);
+r = await batchJoiner.post(`/api/public/gyms/${slug}-new/register`, { ...reg, name: "Batch Joiner", phone: phone(942), batch: "EVENING" });
+ok(r.status === 201, "a person picks the evening batch at QR sign-up", r.body);
+const joinerId = r.body.memberId;
+r = await newOwner.get(`${G}/members/${joinerId}`);
+ok(r.body.member.batch === "EVENING", "the desk sees the evening batch on the sign-up", r.body.member);
 console.log(`\nAll ${checks} checks passed.`);

@@ -98,6 +98,9 @@ export function CheckinsPage() {
       </div>
 
       <div className="card">
+        <div className="card__head">
+          <span className="section__title">Checked in today</span>
+        </div>
         {feed.error && !feed.data ? (
           <ErrorState message={feed.error.message} onRetry={feed.reload} />
         ) : feed.loading && !feed.data ? (

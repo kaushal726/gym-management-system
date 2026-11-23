@@ -1,6 +1,6 @@
 /* Database row shapes and their mapping to API types. SQL uses snake_case, the API camelCase. */
 import type { Freeze, GymSettings, MemberProfile, Payment, Plan, PublicGym, Subscription, Visit } from "../../../shared/api.ts";
-import type { Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "../../../shared/constants.ts";
+import type { Batch, Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "../../../shared/constants.ts";
 import type { MembershipState } from "../../../shared/membership.ts";
 import { gymAccess, gymIsOpen, type GymStatus } from "../../../shared/saas.ts";
 import { todayIn } from "../../../shared/dates.ts";
@@ -52,6 +52,7 @@ export interface MemberRow {
   anonymised_at: string | null;
   created_at: string;
   invite_email: string | null;
+  batch: Batch | null;
   /** Joined from users when selected. */
   picture_url?: string | null;
   linked_email?: string | null;
@@ -194,6 +195,7 @@ export function toMemberProfile(m: MemberRow): MemberProfile {
     phone: m.phone,
     dob: m.dob,
     gender: m.gender,
+    batch: m.batch,
     emergencyName: m.emergency_name,
     emergencyPhone: m.emergency_phone,
     guardianName: m.guardian_name,

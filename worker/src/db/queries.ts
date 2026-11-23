@@ -183,5 +183,6 @@ export function toListItem(entry: RosterEntry, today: IsoDate): MemberListItem {
     duePaise: st.duePaise,
     ptActive: st.pt.state === "ACTIVE" || st.pt.state === "FROZEN",
     lastVisit: entry.lastVisit,
+    batch: member.batch,
   };
 }

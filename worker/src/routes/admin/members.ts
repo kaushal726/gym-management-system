@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import type { ClaimLink, MemberDetail, MemberFilter, MemberListItem } from "../../../../shared/api.ts";
 import { MEMBER_FILTERS } from "../../../../shared/api.ts";
-import { CLAIM_LINK_DAYS, GENDERS } from "../../../../shared/constants.ts";
+import { BATCHES, CLAIM_LINK_DAYS, GENDERS } from "../../../../shared/constants.ts";
 import { ageOn, todayIn } from "../../../../shared/dates.ts";
 import { matchesFilter, matchesSearch } from "../../../../shared/filters.ts";
 import { nextStartDate } from "../../../../shared/membership.ts";
@@ -41,6 +41,7 @@ function readMemberInput(body: Body, today: string) {
     phone: mobile(body, "phone"),
     dob,
     gender: optionalOneOf(body, "gender", GENDERS),
+    batch: optionalOneOf(body, "batch", BATCHES),
     emergencyName: optionalText(body, "emergencyName", { max: 80 }),
     emergencyPhone: optionalMobile(body, "emergencyPhone"),
     guardianName,
@@ -96,9 +97,9 @@ memberRoutes.post("/members", async (c) => {
   const id = newId();
   await c.env.DB.batch([
     c.env.DB.prepare(
-      `INSERT INTO members (id, gym_id, user_id, invite_email, name, phone, dob, gender, emergency_name, emergency_phone, guardian_name, guardian_phone, source, status, created_by, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'DESK', 'PENDING', ?13, ?14)`,
-    ).bind(id, gym.id, linkUserId, input.email, input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, user.id, nowIso()),
+      `INSERT INTO members (id, gym_id, user_id, invite_email, name, phone, dob, gender, batch, emergency_name, emergency_phone, guardian_name, guardian_phone, source, status, created_by, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'DESK', 'PENDING', ?14, ?15)`,
+    ).bind(id, gym.id, linkUserId, input.email, input.name, input.phone, input.dob, input.gender, input.batch, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, user.id, nowIso()),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "MEMBER_ADD", entity: "member", entityId: id, after: input }),
   ]);
   return c.json({ id }, 201);
@@ -173,15 +174,15 @@ memberRoutes.patch("/members/:memberId", async (c) => {
   statements.push(
     c.env.DB.prepare(
       `UPDATE members SET name = ?1, phone = ?2, dob = ?3, gender = ?4, emergency_name = ?5, emergency_phone = ?6, guardian_name = ?7, guardian_phone = ?8,
-         invite_email = ?9, user_id = ?10 WHERE id = ?11`,
-    ).bind(input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, input.email, linkUserId, member.id),
+         invite_email = ?9, user_id = ?10, batch = ?11 WHERE id = ?12`,
+    ).bind(input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, input.email, linkUserId, input.batch, member.id),
     auditStatement(c.env.DB, {
       gymId: gym.id,
       actorId: user.id,
       action: input.phone !== member.phone ? "MEMBER_PHONE_EDIT" : "MEMBER_EDIT",
       entity: "member",
       entityId: member.id,
-      before: { name: before.name, phone: before.phone, dob: before.dob, gender: before.gender, emergencyName: before.emergencyName, emergencyPhone: before.emergencyPhone, guardianName: before.guardianName, guardianPhone: before.guardianPhone, email: before.inviteEmail },
+      before: { name: before.name, phone: before.phone, dob: before.dob, gender: before.gender, emergencyName: before.emergencyName, emergencyPhone: before.emergencyPhone, guardianName: before.guardianName, guardianPhone: before.guardianPhone, email: before.inviteEmail, batch: before.batch },
       after: input,
     }),
   );

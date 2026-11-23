@@ -1,7 +1,7 @@
 /* The self-registration form behind the gym's QR. Only what the desk needs; the plan is chosen at the desk. */
 import { useState } from "react";
 import type { RegisterInput } from "../../../../shared/api.ts";
-import { GENDERS, type Gender } from "../../../../shared/constants.ts";
+import { BATCHES, BATCH_LABEL, GENDERS, type Batch, type Gender } from "../../../../shared/constants.ts";
 import { ageOn } from "../../../../shared/dates.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
 import { localToday } from "../../lib/format.ts";
@@ -19,6 +19,7 @@ export function RegisterForm({ slug, gymName, onDone }: { slug: string; gymName:
     phone: "",
     dob: "",
     gender: "" as Gender | "",
+    batch: "" as Batch | "",
     emergencyName: "",
     emergencyPhone: "",
     guardianName: "",
@@ -40,6 +41,7 @@ export function RegisterForm({ slug, gymName, onDone }: { slug: string; gymName:
       phone: form.phone,
       dob: form.dob || null,
       gender: form.gender || null,
+      batch: form.batch || null,
       emergencyName: form.emergencyName,
       emergencyPhone: form.emergencyPhone,
       guardianName: minor ? form.guardianName : null,
@@ -77,6 +79,7 @@ export function RegisterForm({ slug, gymName, onDone }: { slug: string; gymName:
         <TextField label="Date of birth" optional type="date" value={form.dob} max={today} onChange={(e) => set("dob", e.target.value)} error={fieldError("dob")} />
         <Segmented label="Gender" optional value={form.gender as Gender} onChange={(v) => set("gender", v)} options={GENDERS.map((g) => ({ value: g, label: GENDER_LABEL[g] }))} />
       </div>
+      <Segmented label="Batch" optional value={form.batch as Batch} onChange={(v) => set("batch", v)} options={BATCHES.map((b) => ({ value: b, label: BATCH_LABEL[b] }))} />
       {minor && (
         <div className="form-grid form-grid--2">
           <Notice tone="info">Members under 18 need a parent or guardian's details.</Notice>

@@ -8,6 +8,7 @@ import { useApi } from "../../lib/useApi.ts";
 import { Button } from "../../components/ui/Button.tsx";
 import { Badge, EmptyState, ErrorState, ListSkeleton } from "../../components/ui/Feedback.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
+import { describeChanges } from "./auditFormat.ts";
 import { useAdmin } from "./AdminShell.tsx";
 
 const ACTION_LABEL: Record<string, string> = {
@@ -41,15 +42,6 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 const SENSITIVE = new Set(["PAYMENT_VOID", "PAYMENT_REFUND", "SUB_CANCEL", "SUB_EDIT", "MEMBER_UNLINK", "MEMBER_ANONYMISE", "STAFF_REMOVE", "MEMBER_PHONE_EDIT"]);
-
-function changed(before: unknown, after: unknown): string[] {
-  if (!before || !after || typeof before !== "object" || typeof after !== "object") return [];
-  const b = before as Record<string, unknown>;
-  const a = after as Record<string, unknown>;
-  return Object.keys(a)
-    .filter((k) => JSON.stringify(a[k]) !== JSON.stringify(b[k]) && k in b)
-    .map((k) => `${k}: ${String(b[k] ?? "—")} → ${String(a[k] ?? "—")}`);
-}
 
 export function AuditPage() {
   const { gymId } = useAdmin();
@@ -97,7 +89,7 @@ export function AuditPage() {
         ) : (
           <div className="list">
             {items.map((a) => {
-              const diffs = changed(a.before, a.after);
+              const diffs = describeChanges(a.before, a.after);
               return (
                 <div className="list-row" key={a.id} style={{ alignItems: "flex-start" }}>
                   <span className="list-row__main">
@@ -124,12 +116,14 @@ export function AuditPage() {
             })}
           </div>
         )}
+        {next && (
+          <div className="card__body" style={{ borderTop: "1px solid var(--border)" }}>
+            <Button block loading={more} onClick={() => void loadMore()}>
+              Load older
+            </Button>
+          </div>
+        )}
       </div>
-      {next && (
-        <Button loading={more} onClick={() => void loadMore()}>
-          Load older
-        </Button>
-      )}
     </div>
   );
 }
