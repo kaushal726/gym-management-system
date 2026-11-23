@@ -14,7 +14,7 @@
     "typecheck": "tsc -p tsconfig.web.json && tsc -p tsconfig.worker.json",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "node scripts/check-deploy-branch.mjs && npm run build && wrangler deploy"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

@@ -86,7 +86,7 @@ To run the daily job for any date locally (DEV_AUTH only), POST to `/api/dev/cro
    npm run db:migrate:remote
    ```
 
-4. **Build and deploy:**
+4. **Build and deploy, from `master` only.** Merge the feature PR first, then `git checkout master && git pull`. The deploy script refuses any other branch and any uncommitted changes:
 
    ```bash
    npm run deploy
