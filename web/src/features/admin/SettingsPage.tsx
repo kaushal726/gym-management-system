@@ -1,6 +1,6 @@
 /* Gym settings (owner): contact, UPI, grace days, joining fee, reminder time, check-in, and the QR poster. */
 import { useEffect, useState } from "react";
-import { FiMapPin, FiPrinter } from "react-icons/fi";
+import { FiDownload, FiMapPin } from "react-icons/fi";
 import type { GymSettings } from "../../../../shared/api.ts";
 import { DEFAULT_CHECKIN_RADIUS_M } from "../../../../shared/constants.ts";
 import { paiseToInput, rupeesToPaise } from "../../../../shared/money.ts";
@@ -20,7 +20,7 @@ function hourLabel(h: number): string {
 }
 
 export function SettingsPage() {
-  const { gymId, gym, reloadGym, isOwner } = useAdmin();
+  const { gymId, base, gym, reloadGym, isOwner } = useAdmin();
   const toast = useToast();
   const [form, setForm] = useState(() => toForm(gym));
   const [busy, setBusy] = useState(false);
@@ -149,8 +149,8 @@ export function SettingsPage() {
             <p className="muted" style={{ fontSize: 13 }}>
               New members sign up with it{gym.checkinEnabled ? ", and members check in with it" : ""}. Put it at the desk and the entrance.
             </p>
-            <ButtonLink href={`/poster/${gym.slug}`} external icon={<FiPrinter />}>
-              Print poster
+            <ButtonLink href={`${base}/qr`} icon={<FiDownload />}>
+              Download or print QR
             </ButtonLink>
           </section>
           <PushCard compact />

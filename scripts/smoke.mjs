@@ -417,4 +417,37 @@ ok(r.body.items.length === auditBefore, "none of those attempts changed anything
 const crossOrigin = await fetch(`${BASE}${G}/members`, { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: newOwner.cookie }, body: "{}" });
 ok(crossOrigin.status === 403, "a request from another website is refused even with the owner's cookie");
 
+
+// Members added by Gmail: the first Google sign-in with that address links them. One email per gym, any number of gyms.
+const otherGymId = (await ownerB.get("/api/auth/session")).body.staffOf[0].gymId;
+const G2 = `/api/gyms/${otherGymId}`;
+const nehaEmail = `neha-${RUN}@gymdesk.test`;
+r = await newOwner.post(`${G}/members`, { name: "Neha Gupta", phone: phone(901), email: nehaEmail.toUpperCase() });
+ok(r.status === 201, "staff add a member with a Gmail", r.body);
+const nehaId = r.body.id;
+r = await newOwner.post(`${G}/members`, { name: "Neha Again", phone: phone(902), email: nehaEmail });
+ok(r.status === 409 && r.body.field === "email", "the same Gmail cannot be added twice at one gym", r.body);
+r = await newOwner.post(`${G}/members`, { name: "Asha Again", phone: phone(903), email: `asha-${RUN}@gymdesk.test` });
+ok(r.status === 409 && r.body.field === "email", "a Gmail a member here already signs in with cannot be added again", r.body);
+r = await newOwner.post(`${G}/members`, { name: "Bad Email", phone: phone(904), email: "not-an-email" });
+ok(r.status === 400 && r.body.field === "email", "a malformed email is refused", r.body);
+r = await ownerB.post(`${G2}/members`, { name: "Neha Gupta", phone: phone(901), email: nehaEmail });
+ok(r.status === 201, "the same Gmail can be a member at another gym", r.body);
+const nehaOtherId = r.body.id;
+const neha = await new Client("Neha Gupta").login(nehaEmail);
+r = await neha.get("/api/auth/session");
+const nehaGyms = Object.fromEntries(r.body.memberOf.map((m) => [m.gymId, m.memberId]));
+ok(nehaGyms[gymId] === nehaId && nehaGyms[otherGymId] === nehaOtherId, "her first Google sign-in links her at both gyms", r.body.memberOf);
+r = await neha.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 200 && r.body.member.name === "Neha Gupta", "she opens her own member page");
+r = await newOwner.get(`${G}/members/${nehaId}`);
+ok(r.body.member.linkedEmail === nehaEmail && r.body.member.inviteEmail === nehaEmail, "the desk sees her Gmail as linked", r.body.member);
+r = await newOwner.patch(`${G}/members/${nehaId}`, { name: "Neha Gupta", phone: phone(901), email: `asha-${RUN}@gymdesk.test` });
+ok(r.status === 409 && r.body.field === "email", "an edit cannot take another member's Gmail", r.body);
+r = await ownerB.post(`${G2}/members`, { name: "Random Person", phone: phone(905), email: `random-${RUN}@gymdesk.test` });
+ok(r.status === 201, "staff add someone who has signed in before", r.body);
+r = await outsider.get("/api/auth/session");
+ok(r.body.memberOf.some((m) => m.gymId === otherGymId), "they are linked straight away, without signing in again", r.body.memberOf);
+r = await outsider.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 404, "being a member at one gym opens nothing at another");
 console.log(`\nAll ${checks} checks passed.`);

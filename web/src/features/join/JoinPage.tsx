@@ -61,6 +61,7 @@ export function JoinPage({ slug }: { slug: string }) {
         points={MEMBER_POINTS}
         poweredBy
         monogram={initials(gym.name)}
+        fit
       >
         <SignInCard title="Continue with Google" subtitle="New here or already a member, start by signing in." />
       </AuthLayout>

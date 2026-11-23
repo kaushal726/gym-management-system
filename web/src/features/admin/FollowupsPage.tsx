@@ -10,6 +10,7 @@ import { useApi } from "../../lib/useApi.ts";
 import { Button, ButtonLink } from "../../components/ui/Button.tsx";
 import { Badge, EmptyState, ErrorState, ListSkeleton } from "../../components/ui/Feedback.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
+import { Tabs } from "../../components/ui/Tabs.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 
 type View = "open" | "done";
@@ -54,14 +55,15 @@ export function FollowupsPage() {
           <p>Renewals, dues and leads to call or WhatsApp. New ones come in every morning.</p>
         </div>
       </div>
-      <div className="segmented" style={{ maxWidth: 320 }} role="group" aria-label="Show">
-        <button type="button" aria-pressed={view === "open"} onClick={() => setView("open")}>
-          To do
-        </button>
-        <button type="button" aria-pressed={view === "done"} onClick={() => setView("done")}>
-          Done
-        </button>
-      </div>
+      <Tabs
+        label="Show"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: "open", label: "To do" },
+          { value: "done", label: "Done" },
+        ]}
+      />
 
       <div className="card">
         {error && !data ? (

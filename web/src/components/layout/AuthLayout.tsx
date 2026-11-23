@@ -28,6 +28,8 @@ interface Props {
   monogram?: string;
   /** Short selling points shown as chips under the text. */
   chips?: string[];
+  /** Phones: fill exactly one screen with no scrolling. Only for short screens like the sign-in card. */
+  fit?: boolean;
 }
 
 /** The GYMDESK headline used wherever there is no gym name to show. */
@@ -57,9 +59,9 @@ function PointsList({ points, className }: { points: AuthPoint[]; className: str
   );
 }
 
-export function AuthLayout({ eyebrow, heading, text, points, children, below, preview = "gym", poweredBy = false, monogram, chips }: Props) {
+export function AuthLayout({ eyebrow, heading, text, points, children, below, preview = "gym", poweredBy = false, monogram, chips, fit = false }: Props) {
   return (
-    <div className="auth">
+    <div className={fit ? "auth auth--fit" : "auth"}>
       <section className="auth__brand" aria-label="About">
         <div className={monogram ? "auth__logo" : "auth__logo auth__logo--desktop"}>
           <Brand size={40} tone="dark" />

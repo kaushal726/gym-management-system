@@ -52,6 +52,7 @@ function navItems(base: string): NavItem[] {
     { href: `${base}/members`, label: "Members", icon: <FiUsers />, group: "main" },
     { href: `${base}/checkins`, label: "Check-ins", icon: <FiCheckSquare />, needsCheckin: true, group: "main" },
     { href: `${base}/plans`, label: "Plans", icon: <FiLayers />, group: "manage" },
+    { href: `${base}/qr`, label: "Gym QR", icon: <FiGrid />, group: "manage" },
     { href: `${base}/reports`, label: "Reports", icon: <FiBarChart2 />, ownerOnly: true, group: "manage" },
     { href: `${base}/staff`, label: "Staff", icon: <FiUserCheck />, ownerOnly: true, group: "manage" },
     { href: `${base}/settings`, label: "Settings", icon: <FiSettings />, group: "manage" },
@@ -237,9 +238,6 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
               <span className="topbar__title">{current?.label === "Today" || !current ? gym.data.name : current.label}</span>
               {current && current.label !== "Today" && <span className="topbar__sub">{gym.data.name}</span>}
             </span>
-            <Link href={`${base}/members?add=1`} className="topbar__add" aria-label="Add member" title="Add member">
-              <FiPlus />
-            </Link>
           </header>
           <div className="shell__scroll">
             {isOwner && (staff.access === "EXPIRING" || staff.access === "GRACE") && <PlanBanner access={staff.access} validTill={staff.validTill} />}

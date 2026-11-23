@@ -15,6 +15,7 @@ function emptyForm(m?: MemberProfile | null) {
   return {
     name: m?.name ?? "",
     phone: m?.phone ?? "",
+    email: m?.inviteEmail ?? "",
     dob: m?.dob ?? "",
     gender: (m?.gender ?? "") as Gender | "",
     emergencyName: m?.emergencyName ?? "",
@@ -54,6 +55,7 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
     const body: MemberInput = {
       name: form.name,
       phone: form.phone,
+      email: form.email.trim() || null,
       dob: form.dob || null,
       gender: form.gender || null,
       emergencyName: form.emergencyName || null,
@@ -100,6 +102,18 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
       >
         <TextField label="Full name" value={form.name} onChange={(e) => set("name", e.target.value)} maxLength={80} error={fieldError("name")} />
         <TextField label="Mobile number" type="tel" inputMode="numeric" value={form.phone} onChange={(e) => set("phone", e.target.value)} error={fieldError("phone")} hint={member ? "The old number is kept in history." : undefined} />
+        <TextField
+          label="Gmail"
+          optional
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          value={form.email}
+          onChange={(e) => set("email", e.target.value)}
+          maxLength={254}
+          error={fieldError("email")}
+          hint={member?.linkedEmail ? `Signs in as ${member.linkedEmail}.` : "When they sign in with Google using this email, their plan and dues open on their phone."}
+        />
         <div className="form-grid form-grid--2">
           <TextField label="Date of birth" optional type="date" max={today} value={form.dob} onChange={(e) => set("dob", e.target.value)} error={fieldError("dob")} />
           <Segmented label="Gender" optional value={form.gender as Gender} onChange={(v) => set("gender", v)} options={GENDERS.map((g) => ({ value: g, label: GENDER_LABEL[g] }))} />
@@ -115,7 +129,7 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
           <TextField label="Emergency mobile" optional type="tel" inputMode="numeric" value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} error={fieldError("emergencyPhone")} />
         </div>
         {error && !error.field && <Notice tone="danger">{error.message}</Notice>}
-        {error?.field && !["name", "phone", "dob", "guardianName", "guardianPhone", "emergencyName", "emergencyPhone"].includes(error.field) && <Notice tone="danger">{error.message}</Notice>}
+        {error?.field && !["name", "phone", "email", "dob", "guardianName", "guardianPhone", "emergencyName", "emergencyPhone"].includes(error.field) && <Notice tone="danger">{error.message}</Notice>}
         <button type="submit" hidden />
       </form>
     </Sheet>

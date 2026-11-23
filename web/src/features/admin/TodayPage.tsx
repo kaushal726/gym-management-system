@@ -13,6 +13,7 @@ import { MODE_LABEL } from "../../lib/states.ts";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/Feedback.tsx";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 import { CountUp } from "../../components/ui/CountUp.tsx";
+import { Tabs } from "../../components/ui/Tabs.tsx";
 import { RupeeIcon } from "../../components/ui/RupeeIcon.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 import { MemberRow } from "./MemberRow.tsx";
@@ -24,7 +25,7 @@ function greeting(): string {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-function QuickAction({ href, label, icon, badge, external }: { href: string; label: string; icon: React.ReactNode; badge?: number; external?: boolean }) {
+function QuickAction({ href, label, icon, badge }: { href: string; label: string; icon: React.ReactNode; badge?: number }) {
   const inner = (
     <>
       <span className="quick__icon" aria-hidden>
@@ -34,11 +35,7 @@ function QuickAction({ href, label, icon, badge, external }: { href: string; lab
       <span className="quick__label">{label}</span>
     </>
   );
-  return external ? (
-    <a className="quick" href={href} target="_blank" rel="noopener noreferrer">
-      {inner}
-    </a>
-  ) : (
+  return (
     <Link className="quick" href={href}>
       {inner}
     </Link>
@@ -86,21 +83,13 @@ export function TodayPage() {
         ) : (
           data && (
             <>
-              {isOwner && data.collectionToday && (
-                <div className="today__headline">
-                  <span className="today__big">
-                    <CountUp value={data.collectionToday.totalPaise} format={formatRupees} />
-                  </span>
-                  <span className="today__big-label">collected today · {data.collectionToday.count} payments</span>
-                </div>
-              )}
+              <Link href={`${base}/members?filter=active`} className="today__headline">
+                <span className="today__big">
+                  <CountUp value={data.counts.active} />
+                </span>
+                <span className="today__big-label">active members</span>
+              </Link>
               <div className="today__strip">
-                <Link href={`${base}/members?filter=active`}>
-                  <strong>
-                    <CountUp value={data.counts.active} />
-                  </strong>
-                  <span>Active</span>
-                </Link>
                 <Link href={`${base}/members?filter=expiring`}>
                   <strong className={data.counts.expiringSoon ? "is-hot" : undefined}>
                     <CountUp value={data.counts.expiringSoon} />
@@ -113,6 +102,21 @@ export function TodayPage() {
                   </strong>
                   <span>Dues</span>
                 </Link>
+                {isOwner && data.collectionToday ? (
+                  <Link href={`${base}/reports`}>
+                    <strong>
+                      <CountUp value={data.collectionToday.totalPaise} format={formatRupees} />
+                    </strong>
+                    <span>Today</span>
+                  </Link>
+                ) : (
+                  <Link href={`${base}/members?filter=pending`}>
+                    <strong className={data.counts.pending ? "is-hot" : undefined}>
+                      <CountUp value={data.counts.pending} />
+                    </strong>
+                    <span>Waiting</span>
+                  </Link>
+                )}
               </div>
             </>
           )
@@ -127,7 +131,7 @@ export function TodayPage() {
         ) : (
           <QuickAction href={`${base}/plans`} label="Plans" icon={<FiLayers />} />
         )}
-        <QuickAction href={`/poster/${gym.slug}`} label="Gym QR" icon={<FiGrid />} external />
+        <QuickAction href={`${base}/qr`} label="Gym QR" icon={<FiGrid />} />
       </nav>
 
       <InstallBanner text="Keep the desk one tap away on your phone." />
@@ -146,14 +150,15 @@ export function TodayPage() {
                 <div className="section__head">
                   <span className="section__title">Needs attention</span>
                 </div>
-                <div className="segmented" role="tablist" aria-label="Needs attention">
-                  <button type="button" role="tab" aria-selected={tab === "waiting"} aria-pressed={tab === "waiting"} onClick={() => setTab("waiting")}>
-                    Waiting · {data.counts.pending}
-                  </button>
-                  <button type="button" role="tab" aria-selected={tab === "expiring"} aria-pressed={tab === "expiring"} onClick={() => setTab("expiring")}>
-                    Expiring · {data.counts.expiringSoon}
-                  </button>
-                </div>
+                <Tabs
+                  label="Needs attention"
+                  value={tab}
+                  onChange={setTab}
+                  options={[
+                    { value: "waiting", label: "Waiting", count: data.counts.pending },
+                    { value: "expiring", label: "Expiring", count: data.counts.expiringSoon },
+                  ]}
+                />
                 <div className="card" key={tab}>
                   {tab === "waiting" ? (
                     data.pending.length === 0 ? (
