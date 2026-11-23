@@ -51,6 +51,7 @@ export interface MemberRow {
   consent_at: string | null;
   anonymised_at: string | null;
   created_at: string;
+  invite_email: string | null;
   /** Joined from users when selected. */
   picture_url?: string | null;
   linked_email?: string | null;
@@ -207,6 +208,7 @@ export function toMemberProfile(m: MemberRow): MemberProfile {
     createdAt: m.created_at,
     pictureUrl: m.picture_url ?? null,
     linkedEmail: m.linked_email ?? null,
+    inviteEmail: m.invite_email,
   };
 }
 

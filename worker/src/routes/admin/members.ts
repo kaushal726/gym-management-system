@@ -12,7 +12,7 @@ import { auditStatement } from "../../lib/audit.ts";
 import { randomToken, sha256Hex } from "../../lib/crypto.ts";
 import { ApiError, badInput, conflict, notFound } from "../../lib/http.ts";
 import { newId, nowIso } from "../../lib/ids.ts";
-import { asBody, mobile, optionalDate, optionalMobile, optionalOneOf, optionalText, text, type Body } from "../../lib/validate.ts";
+import { asBody, mobile, optionalDate, optionalEmail, optionalMobile, optionalOneOf, optionalText, text, type Body } from "../../lib/validate.ts";
 import { freezesOfMember, getMember, loadRoster, paymentsOfMember, standing, subscriptionsOfMember, toListItem, toStateSummary, visitsOfMember } from "../../db/queries.ts";
 import { toMemberProfile, type MemberRow } from "../../db/rows.ts";
 
@@ -45,7 +45,29 @@ function readMemberInput(body: Body, today: string) {
     emergencyPhone: optionalMobile(body, "emergencyPhone"),
     guardianName,
     guardianPhone,
+    email: optionalEmail(body, "email"),
   };
+}
+
+const EMAIL_TAKEN = "This email is already used by another member at this gym.";
+
+/** One email per gym: no other member here was added with it or signs in with it. */
+async function assertEmailFree(db: D1Database, gymId: string, address: string, exceptMemberId: string | null): Promise<void> {
+  const taken = await db
+    .prepare(
+      `SELECT 1 FROM members m LEFT JOIN users u ON u.id = m.user_id
+       WHERE m.gym_id = ?1 AND m.anonymised_at IS NULL AND (?3 IS NULL OR m.id <> ?3) AND (m.invite_email = ?2 OR lower(u.email) = ?2)`,
+    )
+    .bind(gymId, address, exceptMemberId)
+    .first();
+  if (taken) throw new ApiError(409, EMAIL_TAKEN, "email");
+}
+
+/** The account that already signed in with this email, if any, so the member is linked straight away. */
+async function userIdForEmail(db: D1Database, address: string | null): Promise<string | null> {
+  if (!address) return null;
+  const row = await db.prepare("SELECT id FROM users WHERE lower(email) = ?1").bind(address).first<{ id: string }>();
+  return row?.id ?? null;
 }
 
 memberRoutes.get("/members", async (c) => {
@@ -66,12 +88,14 @@ memberRoutes.post("/members", async (c) => {
   const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone));
   const taken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2").bind(gym.id, input.phone).first();
   if (taken) throw new ApiError(409, "This phone number is already registered at this gym.", "phone");
+  if (input.email) await assertEmailFree(c.env.DB, gym.id, input.email, null);
+  const linkUserId = await userIdForEmail(c.env.DB, input.email);
   const id = newId();
   await c.env.DB.batch([
     c.env.DB.prepare(
-      `INSERT INTO members (id, gym_id, name, phone, dob, gender, emergency_name, emergency_phone, guardian_name, guardian_phone, source, status, created_by, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'DESK', 'PENDING', ?11, ?12)`,
-    ).bind(id, gym.id, input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, user.id, nowIso()),
+      `INSERT INTO members (id, gym_id, user_id, invite_email, name, phone, dob, gender, emergency_name, emergency_phone, guardian_name, guardian_phone, source, status, created_by, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'DESK', 'PENDING', ?13, ?14)`,
+    ).bind(id, gym.id, linkUserId, input.email, input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, user.id, nowIso()),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "MEMBER_ADD", entity: "member", entityId: id, after: input }),
   ]);
   return c.json({ id }, 201);
@@ -137,18 +161,22 @@ memberRoutes.patch("/members/:memberId", async (c) => {
       ),
     );
   }
+  if (input.email && input.email !== member.invite_email) await assertEmailFree(c.env.DB, gym.id, input.email, member.id);
+  // A member already linked to a Google account keeps that link; otherwise link now if this email has signed in before.
+  const linkUserId = member.user_id ?? (await userIdForEmail(c.env.DB, input.email));
   const before = toMemberProfile(member);
   statements.push(
     c.env.DB.prepare(
-      `UPDATE members SET name = ?1, phone = ?2, dob = ?3, gender = ?4, emergency_name = ?5, emergency_phone = ?6, guardian_name = ?7, guardian_phone = ?8 WHERE id = ?9`,
-    ).bind(input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, member.id),
+      `UPDATE members SET name = ?1, phone = ?2, dob = ?3, gender = ?4, emergency_name = ?5, emergency_phone = ?6, guardian_name = ?7, guardian_phone = ?8,
+         invite_email = ?9, user_id = ?10 WHERE id = ?11`,
+    ).bind(input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, input.email, linkUserId, member.id),
     auditStatement(c.env.DB, {
       gymId: gym.id,
       actorId: user.id,
       action: input.phone !== member.phone ? "MEMBER_PHONE_EDIT" : "MEMBER_EDIT",
       entity: "member",
       entityId: member.id,
-      before: { name: before.name, phone: before.phone, dob: before.dob, gender: before.gender, emergencyName: before.emergencyName, emergencyPhone: before.emergencyPhone, guardianName: before.guardianName, guardianPhone: before.guardianPhone },
+      before: { name: before.name, phone: before.phone, dob: before.dob, gender: before.gender, emergencyName: before.emergencyName, emergencyPhone: before.emergencyPhone, guardianName: before.guardianName, guardianPhone: before.guardianPhone, email: before.inviteEmail },
       after: input,
     }),
   );
@@ -201,7 +229,7 @@ memberRoutes.post("/members/:memberId/anonymise", ownerOnly, async (c) => {
   await c.env.DB.batch([
     c.env.DB.prepare(
       `UPDATE members SET name = 'Deleted member', phone = 'deleted-' || id, dob = NULL, gender = NULL, emergency_name = NULL, emergency_phone = NULL,
-         guardian_name = NULL, guardian_phone = NULL, user_id = NULL, anonymised_at = ?1 WHERE id = ?2`,
+         guardian_name = NULL, guardian_phone = NULL, user_id = NULL, invite_email = NULL, anonymised_at = ?1 WHERE id = ?2`,
     ).bind(nowIso(), member.id),
     c.env.DB.prepare("DELETE FROM followups WHERE member_id = ?1 AND contacted_at IS NULL").bind(member.id),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "MEMBER_ANONYMISE", entity: "member", entityId: member.id, reason }),

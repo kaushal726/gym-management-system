@@ -12,6 +12,7 @@ import { ReportsPage } from "./ReportsPage.tsx";
 import { StaffPage } from "./StaffPage.tsx";
 import { SettingsPage } from "./SettingsPage.tsx";
 import { AuditPage } from "./AuditPage.tsx";
+import { GymQrPage } from "./GymQrPage.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 import { EmptyState } from "../../components/ui/Feedback.tsx";
 
@@ -23,6 +24,7 @@ const PAGES: Record<string, () => ReactNode> = {
   plans: () => <PlansPage />,
   reports: () => <OwnerOnly><ReportsPage /></OwnerOnly>,
   staff: () => <OwnerOnly><StaffPage /></OwnerOnly>,
+  qr: () => <GymQrPage />,
   settings: () => <SettingsPage />,
   audit: () => <OwnerOnly><AuditPage /></OwnerOnly>,
 };

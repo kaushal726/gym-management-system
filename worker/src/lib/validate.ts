@@ -105,3 +105,7 @@ export function email(body: Body, field: string): string {
   if (!EMAIL.test(value)) throw badInput(field);
   return value;
 }
+
+export function optionalEmail(body: Body, field: string): string | null {
+  return body[field] == null || body[field] === "" ? null : email(body, field);
+}

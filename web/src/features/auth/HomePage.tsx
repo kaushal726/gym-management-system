@@ -36,6 +36,7 @@ export function HomePage() {
         heading={BRAND_HEADING}
         text="Never miss a renewal. Never lose a due."
         chips={SELLING_POINTS}
+        fit
         points={GYM_POINTS}
       >
         <SignInCard title="Sign in" subtitle="Gym owners, staff and members all sign in with Google." />

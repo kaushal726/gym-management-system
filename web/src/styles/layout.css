@@ -377,6 +377,62 @@
   }
 }
 
+.poster__print {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* ---------- Gym QR page ---------- */
+.qr-card {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-5);
+}
+.qr-card__code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  text-align: center;
+}
+.qr-card__code canvas {
+  margin: var(--space-3) 0;
+  max-width: 100%;
+  height: auto;
+}
+.qr-card__name {
+  max-width: 100%;
+  font-family: var(--font-heading);
+  font-stretch: var(--heading-stretch);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.qr-card__lead {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+.qr-card__url {
+  max-width: 100%;
+  font-size: var(--text-sm);
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+.qr-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+@media (min-width: 768px) {
+  .qr-card {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: center;
+    padding: var(--space-8);
+  }
+}
+
 /* ---------- Member actions: thumb-sized grid on phones, one row on desktop ---------- */
 .detail-actions {
   display: flex;
@@ -724,16 +780,16 @@
 }
 .auth__pitch h1 em {
   font-style: normal;
-  color: var(--accent);
+  color: var(--panel-accent);
 }
 .auth__eyebrow {
   display: inline-flex;
   align-items: center;
   height: 28px;
   padding: 0 var(--space-3);
-  border: 1px solid rgba(255, 90, 31, 0.5);
+  border: 1px solid rgba(94, 234, 212, 0.45);
   border-radius: var(--radius-pill);
-  color: var(--accent) !important;
+  color: var(--panel-accent) !important;
   font-size: var(--text-xs) !important;
   font-weight: 700 !important;
   letter-spacing: 0.08em;
@@ -760,9 +816,9 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
-  text-align: center;
+  line-height: 1.2;
 }
 .topbar__center .topbar__title {
   max-width: 100%;
@@ -778,28 +834,6 @@
   font-size: var(--text-xs);
   color: var(--text-3);
 }
-.topbar__add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: var(--touch);
-  height: var(--touch);
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: 0 6px 16px rgba(255, 90, 31, 0.35);
-  transition: transform var(--dur-fast) ease;
-}
-.topbar__add:active {
-  transform: scale(0.94);
-}
-.topbar__add svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 2.6;
-}
-
 /* ---------- Sample cards on the sign-in hero (desktop) ---------- */
 .preview {
   display: none;
@@ -863,7 +897,7 @@
   font-size: 40px;
   font-weight: 800;
   line-height: 1.05;
-  color: var(--accent);
+  color: var(--panel-accent);
 }
 .preview__hint {
   display: block;
@@ -905,33 +939,33 @@
   }
 }
 
-/* ---------- Phones: the sign-in fits one screen, no scrolling ----------
- * Big heading in the black hero, the sign-in card under it; the feature list is left to desktop. */
+/* ---------- Phones: short sign-in screens (.auth--fit) fill exactly one screen, no scrolling ----------
+ * Big heading in the black hero, the sign-in card under it; the feature list is left to desktop.
+ * Longer screens on the same layout (the QR registration form, pending, check-in) scroll normally. */
 @media (max-width: 1023px) {
-  .auth {
+  /* One screen when it fits; on a very short phone it scrolls instead of cutting the sign-in off. */
+  .auth--fit {
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
-  .auth__brand {
+  .auth--fit .auth__brand {
     flex: 1;
     justify-content: space-between;
     min-height: 0;
     padding-bottom: var(--space-6);
   }
-  .auth__pitch {
-    margin-top: auto;
-  }
-  .auth__pitch h1 {
+  .auth--fit .auth__pitch h1 {
     font-size: clamp(40px, 7.4vh, 64px);
     overflow-wrap: anywhere;
   }
-  .auth__text {
-    font-size: var(--text-base);
-  }
-  .auth__panel {
+  .auth--fit .auth__panel {
     flex: 0 0 auto;
     padding-top: var(--space-5);
+  }
+  .auth__text {
+    font-size: var(--text-base);
   }
   .auth__points--phone,
   .auth__foot--phone {
@@ -945,6 +979,17 @@
   }
   .auth__card .signin__title {
     font-size: 22px;
+  }
+  /* Scrolling screens: a compact hero so the form starts high on the screen. */
+  .auth:not(.auth--fit) .auth__phone-art {
+    display: none;
+  }
+  .auth:not(.auth--fit) .auth__pitch h1 {
+    font-size: 34px;
+    overflow-wrap: anywhere;
+  }
+  .auth:not(.auth--fit) .auth__brand {
+    padding-bottom: var(--space-6);
   }
 }
 .auth__powered {
@@ -980,7 +1025,7 @@
     transform: rotate(-8deg);
     box-shadow:
       0 24px 60px rgba(0, 0, 0, 0.55),
-      0 0 80px rgba(255, 90, 31, 0.35);
+      0 0 80px rgba(13, 148, 136, 0.35);
     animation: art-float 5s ease-in-out infinite;
   }
   .auth__monogram {
@@ -1043,7 +1088,7 @@
   .auth__monogram {
     font-size: clamp(30px, 8vh, 72px);
   }
-  .auth__pitch h1 {
+  .auth--fit .auth__pitch h1 {
     font-size: clamp(44px, 9vh, 76px);
   }
   .auth__text {

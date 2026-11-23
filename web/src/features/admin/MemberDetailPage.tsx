@@ -210,7 +210,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
                   </>
                 )}
                 <dt>Google</dt>
-                <dd>{member.linkedEmail ?? "Not linked"}</dd>
+                <dd>{member.linkedEmail ?? (member.inviteEmail ? `${member.inviteEmail} · not signed in yet` : "Not linked")}</dd>
                 <dt>Joined via</dt>
                 <dd>{member.source === "QR" ? "QR sign-up" : "Desk"}</dd>
                 <dt>Added</dt>

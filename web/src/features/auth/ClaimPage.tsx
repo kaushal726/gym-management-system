@@ -45,7 +45,7 @@ export function ClaimPage({ token }: { token: string }) {
   };
   if (!session?.user) {
     return (
-      <AuthLayout preview="member" eyebrow={gymName} heading={`Hi ${memberName.split(" ")[0]}, your membership is ready.`} text="Sign in once and your plan, dues and receipts are always on your phone." points={MEMBER_POINTS}>
+      <AuthLayout fit preview="member" eyebrow={gymName} heading={`Hi ${memberName.split(" ")[0]}, your membership is ready.`} text="Sign in once and your plan, dues and receipts are always on your phone." points={MEMBER_POINTS}>
         <SignInCard title="Continue with Google" subtitle="Use the Gmail you want to keep for this gym." />
       </AuthLayout>
     );

@@ -194,6 +194,8 @@ export interface MemberProfile {
   createdAt: string;
   pictureUrl: string | null;
   linkedEmail: string | null;
+  /** The Gmail staff added; the first Google sign-in with it links the member. */
+  inviteEmail: string | null;
 }
 
 export interface StateSummary {
@@ -255,6 +257,7 @@ export interface MemberInput {
   emergencyPhone: string | null;
   guardianName: string | null;
   guardianPhone: string | null;
+  email: string | null;
 }
 
 export interface ActivateInput {
