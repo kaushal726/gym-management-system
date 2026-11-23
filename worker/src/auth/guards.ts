@@ -1,7 +1,7 @@
 /* Who may call what. Roles are read from D1 on every request, so removing a staff member takes effect at once. */
 import type { MiddlewareHandler } from "hono";
 import { STAFF_ROLES, type StaffRole } from "../../../shared/constants.ts";
-import type { AppEnv, Env } from "../env.ts";
+import type { AppEnv, Env, StaffContext } from "../env.ts";
 import { accessOf, type GymRow } from "../db/rows.ts";
 import { gymIsOpen } from "../../../shared/saas.ts";
 import { ApiError, MESSAGES, forbidden, notFound } from "../lib/http.ts";
@@ -10,6 +10,16 @@ export function currentUser(c: { get: (key: "user") => AppEnv["Variables"]["user
   const user = c.get("user");
   if (!user) throw new ApiError(401, MESSAGES.signIn);
   return user;
+}
+
+/**
+ * The caller's gym and role, set by requireStaff. Every gym route reads it through here, so a route that ever
+ * ends up outside the requireStaff middleware fails closed (403) instead of running without a staff check.
+ */
+export function currentStaff(c: { get: (key: "staff") => AppEnv["Variables"]["staff"] | undefined }): StaffContext {
+  const staff = c.get("staff");
+  if (!staff) throw forbidden();
+  return staff;
 }
 
 export const requireUser: MiddlewareHandler<AppEnv> = async (c, next) => {
@@ -54,6 +64,6 @@ export function requireStaff(roles: readonly StaffRole[] = STAFF_ROLES): Middlew
 
 /** Use after requireStaff: lets only the gym's owners through. */
 export const ownerOnly: MiddlewareHandler<AppEnv> = async (c, next) => {
-  if (c.get("staff").role !== "OWNER") throw forbidden();
+  if (currentStaff(c).role !== "OWNER") throw forbidden();
   await next();
 };

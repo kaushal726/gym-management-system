@@ -4,7 +4,7 @@ import type { AppEnv } from "../env.ts";
 import { verifyGoogleIdToken } from "../auth/google.ts";
 import { endSession, startSession, upsertUser } from "../auth/session.ts";
 import { currentUser, isPlatformAdmin, requireUser } from "../auth/guards.ts";
-import { ApiError, notFound } from "../lib/http.ts";
+import { ApiError, badInput, notFound } from "../lib/http.ts";
 import { asBody, email, text } from "../lib/validate.ts";
 import { nowIso } from "../lib/ids.ts";
 import { accessOf, type GymRow } from "../db/rows.ts";
@@ -55,10 +55,16 @@ authRoutes.post("/google", async (c) => {
 });
 
 /** Local development only: sign in as any email without Google. Disabled unless DEV_AUTH=1 in .dev.vars. */
+/** Development sign-in works only on this machine, and only for made-up .test addresses, so it can never
+ * stand in for a real Gmail even if DEV_AUTH were set by mistake on a deployed Worker. */
+const DEV_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const DEV_EMAIL = /@[a-z0-9.-]+\.test$/;
+
 authRoutes.post("/dev", async (c) => {
-  if (c.env.DEV_AUTH !== "1") throw notFound();
+  if (c.env.DEV_AUTH !== "1" || !DEV_HOSTS.has(new URL(c.req.url).hostname)) throw notFound();
   const body = asBody(await c.req.json());
   const address = email(body, "email");
+  if (!DEV_EMAIL.test(address)) throw badInput("email", "Local sign-in only accepts test addresses like name@gymdesk.test. Use Google for real accounts.");
   const user = await upsertUser(c.env.DB, { sub: `dev:${address}`, email: address, name: text(body, "name", { max: 80 }), picture: null });
   await startSession(c, user.id);
   return c.json({ ok: true });

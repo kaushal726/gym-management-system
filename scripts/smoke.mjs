@@ -359,4 +359,62 @@ ok(r.status === 404, "the old owner loses access at once");
 r = await newOwner.get(`${G}/reports/collections`);
 ok(r.status === 200, "the new owner has full owner access");
 
+// Access matrix: nobody outside a gym can read or change anything in it, through any API.
+const anon = new Client("Anonymous");
+const outsider = await new Client("Random Gmail").login(`random-${RUN}@gymdesk.test`);
+const ownerB = await new Client("Other Gym Owner").login(`ownerb-${RUN}@gymdesk.test`);
+r = await admin.post("/api/platform/gyms", { name: "Other Gym", slug: `other-${RUN}`, ownerEmail: `ownerb-${RUN}@gymdesk.test` });
+ok(r.status === 201, "a second gym exists for cross-gym checks");
+const memberSub = (await newOwner.get(`${G}/members/${raviId}`)).body.subscriptions[0].id;
+const auditBefore = (await newOwner.get(`${G}/audit`)).body.items.length;
+const gymCalls = [
+  ["GET", "/dashboard"], ["GET", "/members"], ["GET", `/members/${raviId}`], ["GET", "/followups"], ["GET", "/settings"], ["GET", "/plans"],
+  ["GET", "/staff"], ["GET", "/audit"], ["GET", "/reports/collections"], ["GET", "/export/members.csv"], ["GET", "/export/payments.csv"], ["GET", "/checkins"],
+  ["POST", "/members"], ["POST", `/members/${raviId}/subscriptions`], ["POST", `/subscriptions/${memberSub}/payments`], ["POST", `/payments/${firstPaymentId}/void`],
+  ["POST", `/subscriptions/${memberSub}/cancel`], ["POST", `/subscriptions/${memberSub}/freezes`], ["POST", `/members/${raviId}/reject`], ["POST", `/members/${raviId}/archive`],
+  ["POST", `/members/${raviId}/unarchive`], ["POST", `/members/${raviId}/anonymise`], ["POST", `/members/${raviId}/claim-link`], ["POST", `/members/${raviId}/checkin`],
+  ["POST", `/followups/${fu.id}/contacted`], ["POST", "/plans"], ["POST", "/staff"],
+  ["PATCH", `/members/${raviId}`], ["PATCH", "/settings"], ["PATCH", `/plans/${monthly}`], ["PATCH", `/staff/${encodeURIComponent(`newowner-${RUN}@gymdesk.test`)}`],
+];
+const platformCalls = [
+  ["GET", "/gyms"], ["GET", `/gyms/${gymId}`], ["POST", "/gyms"], ["PATCH", `/gyms/${gymId}`], ["POST", `/gyms/${gymId}/pause`], ["POST", `/gyms/${gymId}/resume`],
+  ["POST", `/gyms/${gymId}/archive`], ["POST", `/gyms/${gymId}/restore`], ["POST", `/gyms/${gymId}/owner`], ["POST", `/gyms/${gymId}/billing`], ["POST", "/signup-gym"],
+];
+const call = (client, method, path) => client.call(method, path, method === "GET" ? undefined : { reason: "x", email: `random-${RUN}@gymdesk.test`, name: "x" });
+const failures = [];
+for (const [method, path] of gymCalls) {
+  const [a, o, b, m] = await Promise.all([call(anon, method, G + path), call(outsider, method, G + path), call(ownerB, method, G + path), call(ravi, method, G + path)]);
+  if (a.status !== 401) failures.push(`anon ${method} ${path} -> ${a.status}`);
+  if (o.status !== 404) failures.push(`outsider ${method} ${path} -> ${o.status}`);
+  if (b.status !== 404) failures.push(`other gym owner ${method} ${path} -> ${b.status}`);
+  if (m.status !== 404) failures.push(`member ${method} ${path} -> ${m.status}`);
+}
+ok(failures.length === 0, `every one of ${gymCalls.length} gym APIs refuses anonymous (401), random Gmail, another gym's owner and a member (404)`, failures);
+const platformFailures = [];
+for (const [method, path] of platformCalls) {
+  const [a, o, b] = await Promise.all([call(anon, method, `/api/platform${path}`), call(outsider, method, `/api/platform${path}`), call(newOwner, method, `/api/platform${path}`)]);
+  if (a.status !== 401) platformFailures.push(`anon ${method} ${path} -> ${a.status}`);
+  if (o.status !== 403) platformFailures.push(`outsider ${method} ${path} -> ${o.status}`);
+  if (b.status !== 403) platformFailures.push(`gym owner ${method} ${path} -> ${b.status}`);
+}
+ok(platformFailures.length === 0, `every one of ${platformCalls.length} platform APIs refuses anonymous, random Gmail and gym owners`, platformFailures);
+r = await outsider.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 404, "a random Gmail cannot read a gym's member page");
+r = await anon.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 401, "anonymous cannot read a member page");
+r = await asha.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 200 && r.body.member.name === "Asha Verma", "a member reads only her own record");
+r = await anon.post(`/api/public/gyms/${slug}-new/register`, reg);
+ok(r.status === 401, "registration needs a Google sign-in");
+r = await outsider.post("/api/public/claim/not-a-real-token", {});
+ok(r.status === 410, "a guessed claim link does nothing");
+r = await outsider.call("POST", "/api/auth/dev", { email: "kausraj11@gmail.com", name: "x" });
+ok(r.status === 400, "dev sign-in refuses real Gmail addresses");
+r = await outsider.call("POST", "/api/auth/push/subscribe", { endpoint: "https://evil.example/x", keys: { p256dh: "a", auth: "b" } });
+ok(r.status === 200, "a user can only register push for themselves");
+r = await newOwner.get(`${G}/audit`);
+ok(r.body.items.length === auditBefore, "none of those attempts changed anything in the gym");
+const crossOrigin = await fetch(`${BASE}${G}/members`, { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: newOwner.cookie }, body: "{}" });
+ok(crossOrigin.status === 403, "a request from another website is refused even with the owner's cookie");
+
 console.log(`\nAll ${checks} checks passed.`);

@@ -39,7 +39,7 @@ app.route("/gyms/:gymId", gymRoutes);
 
 /** Development only: run the daily job as if it were a given date, then send queued pushes. */
 app.post("/dev/cron", async (c) => {
-  if (c.env.DEV_AUTH !== "1") throw notFound();
+  if (c.env.DEV_AUTH !== "1" || !["localhost", "127.0.0.1", "[::1]"].includes(new URL(c.req.url).hostname)) throw notFound();
   const date = c.req.query("date");
   const forced = date && isIsoDate(date) ? date : todayIn("Asia/Kolkata");
   const daily = await runDueGyms(c.env, new Date(), forced);
@@ -60,8 +60,24 @@ app.onError((err, c) => {
   return c.json({ error: MESSAGES.server }, 500);
 });
 
+/**
+ * One entry for both homes of the app. On Cloudflare Pages (the public site) it serves the API and hands every
+ * other path to the static files. The old Worker address sends everyone to PUBLIC_URL, so there is one site only.
+ */
+async function handle(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  if (env.PUBLIC_URL) {
+    const publicUrl = new URL(env.PUBLIC_URL);
+    if (url.host !== publicUrl.host && !url.hostname.endsWith(`.${publicUrl.host}`)) {
+      return Response.redirect(`${publicUrl.origin}${url.pathname}${url.search}`, 301);
+    }
+  }
+  if (url.pathname.startsWith("/api/")) return app.fetch(request, env, ctx);
+  return env.ASSETS.fetch(request);
+}
+
 export default {
-  fetch: app.fetch,
+  fetch: handle,
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
       (async () => {

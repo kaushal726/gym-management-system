@@ -81,8 +81,8 @@ function DevSignIn({ onDone }: { onDone: () => Promise<void> }) {
         void signIn(email);
       }}
     >
-      <Notice tone="info">Local development sign-in. It is switched off on the live site.</Notice>
-      <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required />
+      <Notice tone="info">Local test sign-in, only for made-up @gymdesk.test emails. It does not exist on the live site.</Notice>
+      <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="owner@gymdesk.test" autoComplete="email" required />
       {error && <Notice tone="danger">{error}</Notice>}
       <Button type="submit" variant="primary" loading={busy} block>
         Sign in
