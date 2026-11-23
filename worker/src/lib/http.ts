@@ -4,11 +4,13 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 export class ApiError extends Error {
   readonly status: ContentfulStatusCode;
   readonly field?: string;
+  readonly code?: string;
 
-  constructor(status: ContentfulStatusCode, message: string, field?: string) {
+  constructor(status: ContentfulStatusCode, message: string, field?: string, code?: string) {
     super(message);
     this.status = status;
     this.field = field;
+    this.code = code;
   }
 }
 
@@ -20,6 +22,8 @@ export const MESSAGES = {
   conflict: "This was changed by someone else. Refresh and try again.",
   duplicatePhone: "This phone number is already registered at this gym. Please see the desk.",
   server: "Something went wrong. Please try again.",
+  gymPaused: "This gym's GymDesk account is paused. Please contact GymDesk support.",
+  gymClosedToPublic: "This gym isn't taking sign-ups or check-ins right now. Please contact the desk.",
 } as const;
 
 export const badInput = (field: string, message: string = MESSAGES.badInput) => new ApiError(400, message, field);

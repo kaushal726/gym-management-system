@@ -4,7 +4,7 @@ import { FiLogOut } from "react-icons/fi";
 import { useSession } from "../../lib/session.tsx";
 import { IconButton } from "../ui/Button.tsx";
 
-export function NarrowLayout({ title, subtitle, children, actions }: { title: string; subtitle?: string; children: ReactNode; actions?: ReactNode }) {
+export function NarrowLayout({ title, subtitle, children, actions, wide }: { title: string; subtitle?: string; children: ReactNode; actions?: ReactNode; wide?: boolean }) {
   const { session, signOut } = useSession();
   return (
     <div className="narrow">
@@ -17,7 +17,7 @@ export function NarrowLayout({ title, subtitle, children, actions }: { title: st
         {actions}
         {session?.user && <IconButton label="Sign out" icon={<FiLogOut />} onClick={() => void signOut()} />}
       </header>
-      <main className="narrow__body">{children}</main>
+      <main className={wide ? "narrow__body narrow__body--wide" : "narrow__body"}>{children}</main>
     </div>
   );
 }

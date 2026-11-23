@@ -4,6 +4,7 @@ import type { MembershipState } from "../../../../shared/membership.ts";
 import { initials } from "../../lib/format.ts";
 import { STATE_LABEL, STATE_TONE, type Tone } from "../../lib/states.ts";
 import { Button } from "./Button.tsx";
+import { Illustration, type IllustrationKind } from "./Illustration.tsx";
 
 export function Skeleton({ width = "100%", height = 16, radius, style }: { width?: number | string; height?: number | string; radius?: number; style?: CSSProperties }) {
   return <span className="skeleton" aria-hidden style={{ width, height, borderRadius: radius, ...style }} />;
@@ -27,12 +28,16 @@ export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   );
 }
 
-export function EmptyState({ icon, title, text, action }: { icon: ReactNode; title: string; text?: string; action?: ReactNode }) {
+export function EmptyState({ icon, art, title, text, action }: { icon?: ReactNode; art?: IllustrationKind; title: string; text?: string; action?: ReactNode }) {
   return (
     <div className="state-box enter">
-      <span className="state-box__icon" aria-hidden>
-        {icon}
-      </span>
+      {art ? (
+        <Illustration kind={art} size={132} />
+      ) : (
+        <span className="state-box__icon" aria-hidden>
+          {icon}
+        </span>
+      )}
       <h3>{title}</h3>
       {text && <p>{text}</p>}
       {action}

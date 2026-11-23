@@ -75,7 +75,7 @@ function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] ?? name;
 }
 
-function displayDate(date: IsoDate | null): string {
+export function displayDate(date: IsoDate | null): string {
   if (!date) return "";
   const [y, m, d] = date.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });

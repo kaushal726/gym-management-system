@@ -5,10 +5,13 @@ import type { Paise } from "./money.ts";
 import type { MembershipState } from "./membership.ts";
 import type { Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "./constants.ts";
 import type { ReminderType } from "./reminders.ts";
+import type { GymAccess, GymStatus, SaasPaymentMode } from "./saas.ts";
 
 export interface ApiErrorBody {
   error: string;
   field?: string;
+  /** Machine-readable reason, e.g. GYM_PAUSED, so the app can show the right screen. */
+  code?: string;
 }
 
 export interface SessionUser {
@@ -23,6 +26,8 @@ export interface StaffGym {
   gymName: string;
   gymSlug: string;
   role: StaffRole;
+  access: GymAccess;
+  validTill: IsoDate | null;
 }
 
 export interface MemberOf {
@@ -55,6 +60,8 @@ export interface PublicGym {
   address: string | null;
   checkinEnabled: boolean;
   checkinNeedsLocation: boolean;
+  /** False while the gym is paused or archived: no sign-ups or check-ins. */
+  open: boolean;
 }
 
 export interface GymEntry {
@@ -389,15 +396,61 @@ export interface PlatformGym {
   id: string;
   slug: string;
   name: string;
-  ownerEmails: string[];
-  memberCount: number;
+  status: GymStatus;
+  access: GymAccess;
+  validTill: IsoDate | null;
+  saasPlanName: string | null;
+  ownerEmail: string | null;
+  ownerLastLoginAt: string | null;
+  members: number;
+  activeMembers: number;
+  pending: number;
+  staff: number;
+  lastActivityAt: string | null;
   createdAt: string;
+}
+
+export interface GymBillingEntry {
+  id: string;
+  planName: string;
+  amountPaise: Paise;
+  mode: SaasPaymentMode;
+  paidOn: IsoDate;
+  validTillBefore: IsoDate | null;
+  validTillAfter: IsoDate;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface PlatformGymDetail {
+  today: IsoDate;
+  gym: PlatformGym & { phone: string | null; address: string | null; statusReason: string | null; statusChangedAt: string | null };
+  staff: (StaffEntry & { lastLoginAt: string | null })[];
+  billing: GymBillingEntry[];
+}
+
+export interface GymBillingInput {
+  planName: string;
+  amountPaise: Paise;
+  mode: SaasPaymentMode;
+  paidOn: IsoDate;
+  validTill: IsoDate;
+  note: string | null;
 }
 
 export interface CreateGymInput {
   name: string;
   slug: string;
   ownerEmail: string;
+  phone: string | null;
+  address: string | null;
+  saasPlanName: string | null;
+  validTill: IsoDate | null;
+}
+
+export interface GymDetailsInput {
+  name: string;
+  slug: string;
   phone: string | null;
   address: string | null;
 }

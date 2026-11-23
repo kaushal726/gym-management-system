@@ -7,6 +7,7 @@ import { currentUser, isPlatformAdmin, requireUser } from "../auth/guards.ts";
 import { ApiError, notFound } from "../lib/http.ts";
 import { asBody, email, text } from "../lib/validate.ts";
 import { nowIso } from "../lib/ids.ts";
+import { accessOf, type GymRow } from "../db/rows.ts";
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -25,7 +26,7 @@ authRoutes.get("/session", async (c) => {
   if (!user) return c.json<SessionInfo>({ user: null, staffOf: [], memberOf: [], isPlatformAdmin: false });
   const [staff, members] = await c.env.DB.batch([
     c.env.DB.prepare(
-      `SELECT g.id AS gym_id, g.name AS gym_name, g.slug AS gym_slug, st.role FROM gym_staff st JOIN gyms g ON g.id = st.gym_id
+      `SELECT g.id AS gym_id, g.name AS gym_name, g.slug AS gym_slug, g.status, g.valid_till, g.timezone, st.role FROM gym_staff st JOIN gyms g ON g.id = st.gym_id
        WHERE st.user_id = ?1 AND st.active = 1 ORDER BY g.name`,
     ).bind(user.id),
     c.env.DB.prepare(
@@ -33,11 +34,11 @@ authRoutes.get("/session", async (c) => {
        WHERE m.user_id = ?1 AND m.anonymised_at IS NULL ORDER BY g.name`,
     ).bind(user.id),
   ]);
-  type StaffJoin = { gym_id: string; gym_name: string; gym_slug: string; role: StaffGym["role"] };
+  type StaffJoin = { gym_id: string; gym_name: string; gym_slug: string; role: StaffGym["role"]; status: GymRow["status"]; valid_till: string | null; timezone: string };
   type MemberJoin = { gym_id: string; gym_name: string; gym_slug: string; member_id: string; status: SessionInfo["memberOf"][number]["status"] };
   return c.json<SessionInfo>({
     user,
-    staffOf: (staff.results as StaffJoin[]).map((s) => ({ gymId: s.gym_id, gymName: s.gym_name, gymSlug: s.gym_slug, role: s.role })),
+    staffOf: (staff.results as StaffJoin[]).map((s) => ({ gymId: s.gym_id, gymName: s.gym_name, gymSlug: s.gym_slug, role: s.role, access: accessOf(s), validTill: s.valid_till })),
     memberOf: (members.results as MemberJoin[]).map((m) => ({ gymId: m.gym_id, gymName: m.gym_name, gymSlug: m.gym_slug, memberId: m.member_id, status: m.status })),
     isPlatformAdmin: isPlatformAdmin(c.env, user.email),
   });

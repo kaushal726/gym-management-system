@@ -49,6 +49,7 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
   const user = currentUser(c);
   const gym = await gymOr404(c.env.DB, c.req.param("slug"));
   const body = asBody(await c.req.json());
+  if (!toPublicGym(gym).open) throw new ApiError(403, MESSAGES.gymClosedToPublic, undefined, "GYM_PAUSED");
   if (!bool(body, "consent")) throw badInput("consent", "Please accept the consent to continue.");
 
   const existing = await memberOfUser(c.env.DB, gym.id, user.id);
@@ -97,6 +98,7 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
 publicRoutes.post("/gyms/:slug/checkin", requireUser, async (c) => {
   const user = currentUser(c);
   const gym = await gymOr404(c.env.DB, c.req.param("slug"));
+  if (!toPublicGym(gym).open) throw new ApiError(403, MESSAGES.gymClosedToPublic, undefined, "GYM_PAUSED");
   if (gym.checkin_enabled !== 1) throw new ApiError(403, "Check-in is not turned on at this gym.");
   const member = await memberOfUser(c.env.DB, gym.id, user.id);
   if (!member || member.status !== "JOINED" || member.archived_at) throw new ApiError(403, "Please see the desk to start your membership.");

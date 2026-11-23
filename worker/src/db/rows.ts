@@ -2,6 +2,8 @@
 import type { Freeze, GymSettings, MemberProfile, Payment, Plan, PublicGym, Subscription, Visit } from "../../../shared/api.ts";
 import type { Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "../../../shared/constants.ts";
 import type { MembershipState } from "../../../shared/membership.ts";
+import { gymAccess, gymIsOpen, type GymStatus } from "../../../shared/saas.ts";
+import { todayIn } from "../../../shared/dates.ts";
 
 export interface GymRow {
   id: string;
@@ -20,6 +22,11 @@ export interface GymRow {
   reminder_hour: number;
   next_receipt_no: number;
   next_request_no: number;
+  status: GymStatus;
+  status_reason: string | null;
+  status_changed_at: string | null;
+  saas_plan_name: string | null;
+  valid_till: string | null;
   created_at: string;
 }
 
@@ -128,6 +135,11 @@ export interface StaffRow {
   active: number;
 }
 
+/** The gym's platform access today, in its own time zone. */
+export function accessOf(g: Pick<GymRow, "status" | "valid_till" | "timezone">) {
+  return gymAccess({ status: g.status, validTill: g.valid_till }, todayIn(g.timezone));
+}
+
 export function toPublicGym(g: GymRow): PublicGym {
   return {
     id: g.id,
@@ -137,6 +149,7 @@ export function toPublicGym(g: GymRow): PublicGym {
     address: g.address,
     checkinEnabled: g.checkin_enabled === 1,
     checkinNeedsLocation: g.checkin_lat != null && g.checkin_lng != null && g.checkin_radius_m != null,
+    open: gymIsOpen(accessOf(g)),
   };
 }
 

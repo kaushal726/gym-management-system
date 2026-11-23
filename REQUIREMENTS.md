@@ -32,8 +32,8 @@ GymDesk fixes those four. Everything else is secondary.
 |---|---|---|
 | Platform admin (Kaushal) | Onboard a gym with its one main owner email | See inside a gym unless invited |
 | Owner (one per gym) | Everything in their gym; add managers and trainers; edit/void payments (reason required); revenue; audit log; export | Add a second owner |
-| Manager | Add members, activate, renew, record payments, freeze, follow-up list | Edit/void payments, see revenue totals, audit log, export, staff, settings |
-| Trainer | Same as Manager: members, plans, payments, freezes, check-ins, follow-ups | Same limits as Manager: no sales or collection figures, reports, audit, staff, settings, voids, exports |
+| Manager | Add members, activate, renew, record payments, freeze, follow-up list, gym settings (UPI ID included; the owner gets a push for every change), QR poster | Edit/void payments, see revenue totals, audit log, export, staff |
+| Trainer | Same as Manager: members, plans, payments, freezes, check-ins, follow-ups | Same limits as Manager: no sales or collection figures, reports, audit, staff, voids, exports |
 | Member | View own data; turn push on/off; message the gym; sign out | Change any data |
 
 - `collected_by` on a payment is always the signed-in staff user.

@@ -1,6 +1,6 @@
 /* The staff app frame: sidebar on desktop; top bar, bottom nav and a "More" sheet on phones. */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { FiBarChart2, FiCheckSquare, FiHome, FiLayers, FiLogOut, FiMenu, FiPhoneCall, FiRepeat, FiSettings, FiShield, FiUserCheck, FiUsers } from "react-icons/fi";
+import { FiBarChart2, FiCheckSquare, FiHome, FiLayers, FiLogOut, FiGrid, FiMenu, FiPhoneCall, FiRefreshCw, FiRepeat, FiSettings, FiShield, FiUserCheck, FiUsers } from "react-icons/fi";
 import type { GymSettings } from "../../../../shared/api.ts";
 import type { StaffRole } from "../../../../shared/constants.ts";
 import { syncCheckins } from "../../lib/offlineCheckins.ts";
@@ -8,10 +8,15 @@ import { ROLE_LABEL } from "../../lib/states.ts";
 import { Link, navigate, usePath } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { useApi } from "../../lib/useApi.ts";
-import { Avatar, ErrorState, Skeleton } from "../../components/ui/Feedback.tsx";
-import { IconButton } from "../../components/ui/Button.tsx";
+import { Avatar, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
+import { Button, ButtonLink, IconButton } from "../../components/ui/Button.tsx";
 import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
+import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
+import { ApiRequestError } from "../../lib/api.ts";
+import { formatDate } from "../../lib/format.ts";
+import { gymIsOpen, SAAS_GRACE_DAYS, type GymAccess } from "../../../../shared/saas.ts";
+import type { StaffGym } from "../../../../shared/api.ts";
 
 interface AdminContextValue {
   gymId: string;
@@ -48,13 +53,41 @@ function navItems(base: string): NavItem[] {
     { href: `${base}/plans`, label: "Plans", icon: <FiLayers />, group: "manage" },
     { href: `${base}/reports`, label: "Reports", icon: <FiBarChart2 />, ownerOnly: true, group: "manage" },
     { href: `${base}/staff`, label: "Staff", icon: <FiUserCheck />, ownerOnly: true, group: "manage" },
-    { href: `${base}/settings`, label: "Settings", icon: <FiSettings />, ownerOnly: true, group: "manage" },
+    { href: `${base}/settings`, label: "Settings", icon: <FiSettings />, group: "manage" },
     { href: `${base}/audit`, label: "Audit log", icon: <FiShield />, ownerOnly: true, group: "manage" },
   ];
 }
 
 function isCurrent(path: string, href: string, base: string) {
   return href === base ? path === base : path === href || path.startsWith(`${href}/`);
+}
+
+/** The owner's reminder that the gym's own GymDesk plan is ending or has just ended. */
+function PlanBanner({ access, validTill }: { access: GymAccess; validTill: string | null }) {
+  return (
+    <div className="page" style={{ paddingBottom: 0 }}>
+      <Notice tone="warning">
+        {access === "GRACE"
+          ? `Your GymDesk plan ended on ${formatDate(validTill)}. The desk will pause ${SAAS_GRACE_DAYS} days after that. Please renew with GymDesk.`
+          : `Your GymDesk plan ends on ${formatDate(validTill)}. Please renew to keep the desk running without a break.`}
+      </Notice>
+    </div>
+  );
+}
+
+/** Buttons to the other gyms this person works at, if any. */
+function otherGymButtons(staffOf: StaffGym[], gymId: string) {
+  const others = staffOf.filter((s) => s.gymId !== gymId && gymIsOpen(s.access));
+  if (others.length === 0) return undefined;
+  return (
+    <>
+      {others.map((g) => (
+        <ButtonLink key={g.gymId} href={`/admin/${g.gymId}`} variant="primary" icon={<FiRepeat />}>
+          Open {g.gymName}
+        </ButtonLink>
+      ))}
+    </>
+  );
 }
 
 export function AdminShell({ gymId, children }: { gymId: string; children: ReactNode }) {
@@ -78,16 +111,55 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
 
   if (!staff) {
     return (
-      <div className="narrow__body">
-        <ErrorState message="You don't have access to this gym." />
-      </div>
+      <StatusScreen
+        art="locked"
+        title="You're not on this gym's team"
+        text="This Gmail isn't added to this gym. Ask the gym owner to add it under Staff, or sign in with the Gmail they added."
+        actions={
+          session?.isPlatformAdmin ? (
+            <ButtonLink href="/platform" variant="primary" icon={<FiGrid />}>
+              Open platform console
+            </ButtonLink>
+          ) : (
+            otherGymButtons(session?.staffOf ?? [], gymId)
+          )
+        }
+      />
+    );
+  }
+  const pausedByServer = gym.error instanceof ApiRequestError && gym.error.code === "GYM_PAUSED";
+  if (!gymIsOpen(staff.access) || pausedByServer) {
+    return (
+      <StatusScreen
+        art="sleeping"
+        title={staff.access === "ARCHIVED" ? `${staff.gymName} is closed on GymDesk` : `${staff.gymName} is paused`}
+        text="Members can still see their own plans. To get the desk running again, please contact GymDesk support."
+        actions={otherGymButtons(session!.staffOf, gymId)}
+      />
+    );
+  }
+  if (gym.error && !gym.data) {
+    return (
+      <StatusScreen
+        art="lost"
+        title="Couldn't open the gym"
+        text={gym.error.message}
+        actions={
+          <Button variant="primary" icon={<FiRefreshCw />} onClick={gym.reload}>
+            Try again
+          </Button>
+        }
+      />
     );
   }
   if (!gym.data) {
     return (
       <div className="shell">
         <div className="shell__main">
-          <div className="page">{gym.error ? <ErrorState message={gym.error.message} onRetry={gym.reload} /> : <Skeleton height={120} radius={12} />}</div>
+          <div className="page">
+            <Skeleton width={180} height={28} />
+            <Skeleton height={120} radius={12} />
+          </div>
         </div>
       </div>
     );
@@ -160,7 +232,10 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
             <span className="topbar__title">{current?.label === "Today" || !current ? gym.data.name : current.label}</span>
             <Avatar name={session!.user!.name} src={session!.user!.pictureUrl} size={30} />
           </header>
-          <div className="shell__scroll">{children}</div>
+          <div className="shell__scroll">
+            {isOwner && (staff.access === "EXPIRING" || staff.access === "GRACE") && <PlanBanner access={staff.access} validTill={staff.validTill} />}
+            {children}
+          </div>
           <nav className="bottom-nav" aria-label="Main">
             {bottom.map((i) => (
               <Link key={i.href} href={i.href} className="bottom-nav__item" aria-current={isCurrent(path, i.href, base) ? "page" : undefined}>

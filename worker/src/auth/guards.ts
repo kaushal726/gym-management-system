@@ -2,7 +2,8 @@
 import type { MiddlewareHandler } from "hono";
 import { STAFF_ROLES, type StaffRole } from "../../../shared/constants.ts";
 import type { AppEnv, Env } from "../env.ts";
-import type { GymRow } from "../db/rows.ts";
+import { accessOf, type GymRow } from "../db/rows.ts";
+import { gymIsOpen } from "../../../shared/saas.ts";
 import { ApiError, MESSAGES, forbidden, notFound } from "../lib/http.ts";
 
 export function currentUser(c: { get: (key: "user") => AppEnv["Variables"]["user"] }) {
@@ -43,6 +44,7 @@ export function requireStaff(roles: readonly StaffRole[] = STAFF_ROLES): Middlew
       .bind(gymId, user.id)
       .first<GymRow & { staff_role: StaffRole }>();
     if (!row) throw notFound();
+    if (!gymIsOpen(accessOf(row))) throw new ApiError(403, MESSAGES.gymPaused, undefined, "GYM_PAUSED");
     if (!roles.includes(row.staff_role)) throw forbidden();
     const { staff_role, ...gym } = row;
     c.set("staff", { gym, role: staff_role });

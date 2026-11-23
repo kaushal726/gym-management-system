@@ -66,7 +66,7 @@ export function RegisterForm({ slug, gymName, onDone }: { slug: string; gymName:
       noValidate
     >
       <div>
-        <h1>Join {gymName}</h1>
+        <h2>Your details</h2>
         <p className="muted" style={{ marginTop: 6 }}>
           Fill this once. The desk will pick your plan and take the payment.
         </p>

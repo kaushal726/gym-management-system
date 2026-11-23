@@ -26,6 +26,7 @@ The source of truth is the migration: [worker/migrations/0001_init.sql](worker/m
 | `push_subscriptions`, `push_queue` | Browser push endpoints, and pushes waiting to go out |
 | `reminders_sent` | Primary key `(subscription_id, type, for_date)`: a reminder can never go out twice |
 | `followups` | The owner's call list, one row per reminder, with "push failed, call instead" and "contacted by, note" |
+| `gym_billing` | What each gym paid the platform for GymDesk, and the valid-till date before and after (`0004`). `gyms.status` (ACTIVE / PAUSED / ARCHIVED) and `gyms.valid_till` drive access: see `shared/saas.ts` |
 | `gym_daily_runs` | Marks that a gym's daily job ran for a date |
 | `audit_log` | Every change with actor, before and after JSON, and reason |
 

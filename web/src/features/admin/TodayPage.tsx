@@ -1,18 +1,21 @@
 /* Today: the four numbers that matter, what's waiting at the desk, who expires this week and today's cash. */
-import { FiAlertTriangle, FiCheckCircle, FiClock, FiDollarSign, FiInbox, FiPhoneCall, FiUserPlus, FiUsers } from "react-icons/fi";
+import { FiAlertTriangle, FiCheckCircle, FiClock, FiInbox, FiPhoneCall, FiUserPlus, FiUsers } from "react-icons/fi";
 import type { Dashboard } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatDate } from "../../lib/format.ts";
 import { Link } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
+import { useSession } from "../../lib/session.tsx";
 import { MODE_LABEL } from "../../lib/states.ts";
 import { ButtonLink } from "../../components/ui/Button.tsx";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/Feedback.tsx";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 import { useAdmin } from "./AdminShell.tsx";
+import { RupeeIcon } from "../../components/ui/RupeeIcon.tsx";
+import { CountUp } from "../../components/ui/CountUp.tsx";
 import { MemberRow } from "./MemberRow.tsx";
 
-function Stat({ href, label, value, hint, icon, tone }: { href: string; label: string; value: string | number; hint?: string; icon: React.ReactNode; tone?: string }) {
+function Stat({ href, label, value, hint, icon, tone }: { href: string; label: string; value: React.ReactNode; hint?: string; icon: React.ReactNode; tone?: string }) {
   return (
     <Link href={href} className="stat">
       <span className="stat__label">
@@ -27,16 +30,22 @@ function Stat({ href, label, value, hint, icon, tone }: { href: string; label: s
   );
 }
 
+function greeting(): string {
+  const hour = new Date().getHours();
+  return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+}
+
 export function TodayPage() {
   const { gymId, base, gym, isOwner } = useAdmin();
+  const { session } = useSession();
   const { data, error, loading, reload } = useApi<Dashboard>(`/gyms/${gymId}/dashboard`);
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Today</h1>
-          <p>{data ? formatDate(data.today) : " "}</p>
+          <h1>{greeting()}, {session?.user?.name.split(" ")[0] ?? "there"}</h1>
+          <p>{data ? `${formatDate(data.today)} · ${gym.name}` : " "}</p>
         </div>
         <div className="page-head__actions">
           <ButtonLink href={`${base}/members?add=1`} variant="primary" icon={<FiUserPlus />}>
@@ -62,17 +71,17 @@ export function TodayPage() {
         data && (
           <>
             <div className="stats enter-stagger">
-              <Stat href={`${base}/members?filter=active`} label="Active" value={data.counts.active} hint={data.counts.frozen ? `${data.counts.frozen} frozen` : undefined} icon={<FiUsers />} />
-              <Stat href={`${base}/members?filter=expiring`} label="Expiring in 7 days" value={data.counts.expiringSoon} icon={<FiClock />} tone={data.counts.expiringSoon ? "var(--warning)" : undefined} />
+              <Stat href={`${base}/members?filter=active`} label="Active" value={<CountUp value={data.counts.active} />} hint={data.counts.frozen ? `${data.counts.frozen} frozen` : undefined} icon={<FiUsers />} />
+              <Stat href={`${base}/members?filter=expiring`} label="Expiring in 7 days" value={<CountUp value={data.counts.expiringSoon} />} icon={<FiClock />} tone={data.counts.expiringSoon ? "var(--warning)" : undefined} />
               <Stat
                 href={`${base}/members?filter=grace`}
                 label="In grace"
-                value={data.counts.grace}
+                value={<CountUp value={data.counts.grace} />}
                 hint={`${data.counts.expired} expired`}
                 icon={<FiAlertTriangle />}
                 tone={data.counts.grace ? "var(--warning)" : undefined}
               />
-              <Stat href={`${base}/members?filter=dues`} label="Dues" value={formatRupees(data.duesTotalPaise)} hint={`${data.counts.withDues} members`} icon={<FiDollarSign />} tone={data.duesTotalPaise ? "var(--warning)" : undefined} />
+              <Stat href={`${base}/members?filter=dues`} label="Dues" value={<CountUp value={data.duesTotalPaise} format={formatRupees} />} hint={`${data.counts.withDues} members`} icon={<RupeeIcon />} tone={data.duesTotalPaise ? "var(--warning)" : undefined} />
             </div>
 
             <div className="two-col">
@@ -148,7 +157,7 @@ export function TodayPage() {
                         Month {formatRupees(data.collectionMonthPaise ?? 0)}
                       </span>
                     </div>
-                    <span className="stat__value">{formatRupees(data.collectionToday.totalPaise)}</span>
+                    <span className="stat__value"><CountUp value={data.collectionToday.totalPaise} format={formatRupees} /></span>
                     <dl className="kv">
                       {(Object.keys(MODE_LABEL) as (keyof typeof MODE_LABEL)[]).map((m) => (
                         <div key={m} style={{ display: "contents" }}>
