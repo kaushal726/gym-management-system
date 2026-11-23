@@ -35,7 +35,7 @@ export function ReportsPage() {
         </div>
       </div>
 
-      <div className="card card--pad form-grid form-grid--2">
+      <div className="card card--pad form-grid form-grid--pair">
         <TextField label="From" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
         <TextField label="To" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
       </div>
@@ -72,40 +72,62 @@ export function ReportsPage() {
                   {data.payments.length === 0 ? (
                     <EmptyState icon={<PiFileTextDuotone />} title="No payments in these dates" />
                   ) : (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Date</th>
-                          <th>Member</th>
-                          <th className="hide-mobile">By</th>
-                          <th className="num">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <>
+                      <div className="list only-phone">
                         {data.payments.map((p) => (
-                          <tr key={p.id}>
-                            <td className="tabular">{p.receiptNo}</td>
-                            <td style={{ whiteSpace: "nowrap" }}>{formatDate(p.paidOn)}</td>
-                            <td>
-                              {p.memberName}
-                              <div className="muted" style={{ fontSize: 12 }}>
-                                {p.planName} · {MODE_LABEL[p.mode]}
-                              </div>
-                            </td>
-                            <td className="hide-mobile">{p.collectedByName}</td>
-                            <td className="num">
-                              <span className={p.voidedAt ? "strike" : undefined}>{formatRupees(p.amountPaise)}</span>
-                              {p.voidedAt && (
-                                <div>
-                                  <Badge tone="danger">Voided</Badge>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
+                          <div key={p.id} className="list-row">
+                            <span className="list-row__main">
+                              <span className="list-row__title">{p.memberName}</span>
+                              <span className="list-row__sub">
+                                {formatDate(p.paidOn)} · {p.planName} · {MODE_LABEL[p.mode]} · #{p.receiptNo}
+                              </span>
+                            </span>
+                            <span className="list-row__end">
+                              <span className={p.voidedAt ? "strike tabular" : "tabular"} style={{ fontWeight: 700 }}>
+                                {formatRupees(p.amountPaise)}
+                              </span>
+                              {p.voidedAt && <Badge tone="danger">Voided</Badge>}
+                            </span>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+                      <div className="only-desktop">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Date</th>
+                              <th>Member</th>
+                              <th className="hide-mobile">By</th>
+                              <th className="num">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.payments.map((p) => (
+                              <tr key={p.id}>
+                                <td className="tabular">{p.receiptNo}</td>
+                                <td style={{ whiteSpace: "nowrap" }}>{formatDate(p.paidOn)}</td>
+                                <td>
+                                  {p.memberName}
+                                  <div className="muted" style={{ fontSize: 12 }}>
+                                    {p.planName} · {MODE_LABEL[p.mode]}
+                                  </div>
+                                </td>
+                                <td className="hide-mobile">{p.collectedByName}</td>
+                                <td className="num">
+                                  <span className={p.voidedAt ? "strike" : undefined}>{formatRupees(p.amountPaise)}</span>
+                                  {p.voidedAt && (
+                                    <div>
+                                      <Badge tone="danger">Voided</Badge>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
               </section>

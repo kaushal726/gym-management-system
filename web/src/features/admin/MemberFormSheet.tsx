@@ -1,7 +1,7 @@
 /* Add a walk-in at the desk, or edit someone's details. A changed phone number is kept in history. */
 import { useEffect, useState } from "react";
 import type { MemberInput, MemberProfile } from "../../../../shared/api.ts";
-import { GENDERS, type Gender } from "../../../../shared/constants.ts";
+import { BATCHES, BATCH_LABEL, GENDERS, type Batch, type Gender } from "../../../../shared/constants.ts";
 import { ageOn } from "../../../../shared/dates.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
 import { Button } from "../../components/ui/Button.tsx";
@@ -18,6 +18,7 @@ function emptyForm(m?: MemberProfile | null) {
     email: m?.inviteEmail ?? "",
     dob: m?.dob ?? "",
     gender: (m?.gender ?? "") as Gender | "",
+    batch: (m?.batch ?? "") as Batch | "",
     emergencyName: m?.emergencyName ?? "",
     emergencyPhone: m?.emergencyPhone ?? "",
     guardianName: m?.guardianName ?? "",
@@ -58,6 +59,7 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
       email: form.email.trim() || null,
       dob: form.dob || null,
       gender: form.gender || null,
+      batch: form.batch || null,
       emergencyName: form.emergencyName || null,
       emergencyPhone: form.emergencyPhone || null,
       guardianName: minor ? form.guardianName || null : null,
@@ -119,6 +121,7 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
           <TextField label="Date of birth" optional type="date" max={today} value={form.dob} onChange={(e) => set("dob", e.target.value)} error={fieldError("dob")} />
           <Segmented label="Gender" optional value={form.gender as Gender} onChange={(v) => set("gender", v)} options={GENDERS.map((g) => ({ value: g, label: GENDER_LABEL[g] }))} />
         </div>
+        <Segmented label="Batch" optional value={form.batch as Batch} onChange={(v) => set("batch", v)} options={BATCHES.map((b) => ({ value: b, label: BATCH_LABEL[b] }))} />
         {minor && (
           <div className="form-grid form-grid--2">
             <TextField label="Guardian's name" value={form.guardianName} onChange={(e) => set("guardianName", e.target.value)} error={fieldError("guardianName")} />

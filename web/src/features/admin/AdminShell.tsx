@@ -235,8 +235,8 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
           <header className="topbar topbar--mobile">
             <BrandMark size={32} />
             <span className="topbar__center">
-              <span className="topbar__title">{current?.label === "Today" || !current ? gym.data.name : current.label}</span>
-              {current && current.label !== "Today" && <span className="topbar__sub">{gym.data.name}</span>}
+              <span className="topbar__title">{gym.data.name}</span>
+              <span className="topbar__sub">{ROLE_LABEL[staff.role]}</span>
             </span>
           </header>
           <div className="shell__scroll">

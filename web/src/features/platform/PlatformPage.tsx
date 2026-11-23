@@ -47,7 +47,7 @@ export function PlatformPage() {
   const totalActiveMembers = items.filter((g) => g.access !== "ARCHIVED").reduce((n, g) => n + g.activeMembers, 0);
 
   return (
-    <NarrowLayout title="GymDesk Platform" subtitle={session?.user?.email} wide>
+    <NarrowLayout title="Platform console" wide>
       <div className="page-head">
         <div>
           <h1>Gyms</h1>

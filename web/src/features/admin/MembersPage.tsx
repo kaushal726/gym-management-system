@@ -41,7 +41,7 @@ export function MembersPage() {
           <h1>Members</h1>
           <p>{data ? `${data.counts.all} people` : " "}</p>
         </div>
-        <div className="page-head__actions hide-mobile">
+        <div className="page-head__actions">
           <Button variant="primary" icon={<PiPlusBold />} onClick={() => navigate(`${base}/members?add=1`)}>
             Add member
           </Button>

@@ -13,10 +13,11 @@ import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
 import { MEMBER_POINTS } from "../auth/authPoints.tsx";
 import { initials } from "../../lib/format.ts";
 import { RegisterForm } from "./RegisterForm.tsx";
+import { AccountChip } from "../../components/ui/AccountChip.tsx";
 import { CheckinPanel } from "./CheckinPanel.tsx";
 
 export function JoinPage({ slug }: { slug: string }) {
-  const { session, signOut } = useSession();
+  const { session } = useSession();
   // The user id in the query (ignored by the API) makes the entry reload when someone signs in or out.
   const userId = session?.user?.id ?? "anon";
   const entry = useApi<GymEntry>(`/public/gyms/${slug}?u=${userId}`);
@@ -68,24 +69,23 @@ export function JoinPage({ slug }: { slug: string }) {
     );
   }
   const heading = !member ? `Join ${gym.name}` : member.status === "JOINED" ? `Welcome back, ${member.name.split(" ")[0]}` : gym.name;
+  const waiting = member != null && (member.status === "PENDING" || member.status === "LEAD");
+  const text = waiting ? "You're on the list. The desk will start your plan." : "Your plan, dues and receipts on your phone, and a reminder before your plan ends.";
   return (
     <AuthLayout
       preview="member"
       eyebrow={gym.address ?? undefined}
       heading={heading}
-      text="Your plan, dues and receipts on your phone, and a reminder before your plan ends."
+      text={text}
       points={MEMBER_POINTS}
-      below={
-        <p className="auth__account">
-          {session.user.email} ·{" "}
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => void signOut()}>
-            Sign out
-          </button>
-        </p>
-      }
+      fit={member != null}
+      noArt
+      below={<AccountChip afterSignOut={`/g/${slug}`} />}
     >
       {!member && !gym.open ? (
-        <EmptyState icon={<PiProhibitDuotone />} title="Not taking sign-ups right now" text="Please contact the gym's desk." />
+        <div className="card">
+          <EmptyState icon={<PiProhibitDuotone />} title="Not taking sign-ups right now" text="Please contact the gym's desk." />
+        </div>
       ) : !member ? (
         <RegisterForm slug={slug} gymName={gym.name} onDone={entry.reload} />
       ) : member.status === "PENDING" || member.status === "LEAD" ? (
@@ -102,14 +102,16 @@ export function JoinPage({ slug }: { slug: string }) {
           <Notice tone="info">Show this screen at the desk. They will pick your plan and take the payment.</Notice>
         </div>
       ) : member.status === "REJECTED" ? (
-        <EmptyState icon={<PiProhibitDuotone />} title="Please see the desk" text="Your request could not be accepted. The desk can help you." />
+        <div className="card">
+          <EmptyState icon={<PiProhibitDuotone />} title="Please see the desk" text="Your request could not be accepted. The desk can help you." />
+        </div>
       ) : (
-        <>
+        <div className="card card--pad form-grid">
           {gym.checkinEnabled && gym.open && <CheckinPanel gym={gym} />}
           <ButtonLink href={`/me/${gym.id}`} variant={gym.checkinEnabled ? "secondary" : "primary"} block icon={<PiArrowRightBold />}>
             View my membership
           </ButtonLink>
-        </>
+        </div>
       )}
     </AuthLayout>
   );

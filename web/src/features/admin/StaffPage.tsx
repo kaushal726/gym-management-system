@@ -60,7 +60,7 @@ export function StaffPage() {
       <div className="page-head">
         <div>
           <h1>Staff</h1>
-          <p>Add your managers and trainers. They run the desk: members, plans, payments and check-ins. Only you, the owner, see sales, reports and the audit log, void entries and change settings.</p>
+          <p>Managers and trainers run the desk. Sales, reports and the audit log stay with you.</p>
         </div>
         <Button variant="primary" icon={<PiUserPlusBold />} onClick={() => setInviting(true)}>
           Invite
@@ -78,22 +78,30 @@ export function StaffPage() {
             {data?.items.map((s) => {
               const editable = s.role !== "OWNER" && s.email !== session?.user?.email;
               return (
-                <div className="list-row" key={s.email} style={{ opacity: s.active ? 1 : 0.6, flexWrap: "wrap" }}>
+                <div className="list-row" key={s.email} style={{ opacity: s.active ? 1 : 0.6 }}>
                   <Avatar name={s.userName ?? s.email} />
-                  <span className="list-row__main" style={{ minWidth: 180 }}>
+                  <span className="list-row__main">
                     <span className="list-row__title">{s.userName ?? s.email}</span>
-                    <span className="list-row__sub">{s.email}</span>
+                    <span className="list-row__sub">
+                      {ROLE_LABEL[s.role]} · {s.email}
+                    </span>
+                    {(!s.linked && s.active) || !s.active ? (
+                      <span style={{ marginTop: 4 }}>{s.active ? <Badge tone="warning">Not signed in yet</Badge> : <Badge tone="danger">Removed</Badge>}</span>
+                    ) : null}
                   </span>
-                  <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                    <Badge tone={s.role === "OWNER" ? "accent" : "neutral"}>{ROLE_LABEL[s.role]}</Badge>
-                    {!s.linked && s.active && <Badge tone="warning">Not signed in yet</Badge>}
-                    {!s.active && <Badge tone="danger">Removed</Badge>}
-                    {editable && (
-                      <Button size="sm" variant={s.active ? "danger-ghost" : "secondary"} onClick={() => void update(s, { active: !s.active, role: s.role as TeamRole })}>
-                        {s.active ? "Remove" : "Restore"}
+                  {editable ? (
+                    s.active ? (
+                      <Button size="sm" variant="danger-ghost" onClick={() => void update(s, { active: false, role: s.role as TeamRole })}>
+                        Remove
                       </Button>
-                    )}
-                  </span>
+                    ) : (
+                      <Button size="sm" onClick={() => void update(s, { active: true, role: s.role as TeamRole })}>
+                        Restore
+                      </Button>
+                    )
+                  ) : (
+                    <Badge tone="accent">{ROLE_LABEL[s.role]}</Badge>
+                  )}
                 </div>
               );
             })}

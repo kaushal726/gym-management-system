@@ -1,5 +1,6 @@
 /* One member in a list: who, plan state, days left, dues. Used by Today, Members and search results. */
 import type { MemberListItem } from "../../../../shared/api.ts";
+import { BATCH_LABEL } from "../../../../shared/constants.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatMobile } from "../../../../shared/phone.ts";
 import { formatDayMonth, plural } from "../../lib/format.ts";
@@ -23,7 +24,10 @@ export function MemberRow({ member, href }: { member: MemberListItem; href: stri
       <Avatar name={member.name} src={member.pictureUrl} />
       <span className="list-row__main">
         <span className="list-row__title">{member.name}</span>
-        <span className="list-row__sub">{subline(member)}</span>
+        <span className="list-row__sub">
+          {subline(member)}
+          {member.batch && ` · ${BATCH_LABEL[member.batch]}`}
+        </span>
       </span>
       <span className="list-row__end">
         {member.status === "JOINED" ? <StateBadge state={member.state} /> : <Badge tone={STATUS_TONE[member.status]}>{STATUS_LABEL[member.status]}</Badge>}

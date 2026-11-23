@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import type { CheckinResult, GymEntry, MeMembership } from "../../../shared/api.ts";
 import { CLAIM_BLOCK_MESSAGE, type ClaimBlock, type ClaimInfo } from "../../../shared/claim.ts";
 import { ageOn, todayIn } from "../../../shared/dates.ts";
-import { GENDERS } from "../../../shared/constants.ts";
+import { BATCHES, GENDERS } from "../../../shared/constants.ts";
 import type { AppEnv } from "../env.ts";
 import { currentUser, requireUser } from "../auth/guards.ts";
 import { auditStatement } from "../lib/audit.ts";
@@ -76,6 +76,7 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
     phone,
     dob,
     gender: optionalOneOf(body, "gender", GENDERS),
+    batch: optionalOneOf(body, "batch", BATCHES),
     emergencyName: optionalText(body, "emergencyName", { max: 80 }),
     emergencyPhone: optionalMobile(body, "emergencyPhone"),
     guardianName,
@@ -84,9 +85,9 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
   await c.env.DB.batch([
     c.env.DB.prepare(
       `INSERT INTO members (id, gym_id, user_id, name, phone, dob, gender, emergency_name, emergency_phone, guardian_name, guardian_phone,
-         source, status, request_no, consent_at, created_by, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'QR', 'PENDING', (SELECT next_request_no FROM gyms WHERE id = ?2), ?12, ?3, ?12)`,
-    ).bind(id, gym.id, user.id, row.name, row.phone, row.dob, row.gender, row.emergencyName, row.emergencyPhone, row.guardianName, row.guardianPhone, now),
+         source, status, request_no, consent_at, created_by, created_at, batch)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'QR', 'PENDING', (SELECT next_request_no FROM gyms WHERE id = ?2), ?12, ?3, ?12, ?13)`,
+    ).bind(id, gym.id, user.id, row.name, row.phone, row.dob, row.gender, row.emergencyName, row.emergencyPhone, row.guardianName, row.guardianPhone, now, row.batch),
     c.env.DB.prepare("UPDATE gyms SET next_request_no = next_request_no + 1 WHERE id = ?1").bind(gym.id),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "MEMBER_REGISTER", entity: "member", entityId: id, after: row }),
   ]);

@@ -46,7 +46,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
   );
   if (error && !data) {
     return (
-      <NarrowLayout title="GymDesk Platform" wide>
+      <NarrowLayout title="Platform console" wide>
         {back}
         <ErrorState message={error.message} onRetry={reload} />
       </NarrowLayout>
@@ -54,7 +54,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
   }
   if (loading && !data) {
     return (
-      <NarrowLayout title="GymDesk Platform" wide>
+      <NarrowLayout title="Platform console" wide>
         {back}
         <Skeleton height={160} radius={12} />
         <Skeleton height={220} radius={12} />
@@ -66,7 +66,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
   const statusAction = open === "pause" || open === "resume" || open === "archive" || open === "restore" ? open : null;
 
   return (
-    <NarrowLayout title="GymDesk Platform" subtitle={session?.user?.email} wide>
+    <NarrowLayout title="Platform console" wide>
       {back}
       <div className="card card--pad enter" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>

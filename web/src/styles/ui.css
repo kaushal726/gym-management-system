@@ -177,6 +177,10 @@ select.input {
     grid-template-columns: 1fr 1fr;
   }
 }
+/* A pair that stays side by side even on phones, like a From / To date range. */
+.form-grid--pair {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
 .checkbox {
   display: flex;
   align-items: flex-start;
@@ -220,6 +224,13 @@ select.input {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--on-ink);
+}
+/* Four or more choices on a small phone: two per row so no label is cut. */
+@media (max-width: 400px) {
+  .segmented:has(> :nth-child(4)) {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Tabs: a real tab bar with an underline and a count pill. */

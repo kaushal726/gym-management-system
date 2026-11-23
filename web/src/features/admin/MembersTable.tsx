@@ -5,6 +5,7 @@ import { formatMobile } from "../../../../shared/phone.ts";
 import { formatDate } from "../../lib/format.ts";
 import { navigate } from "../../lib/router.tsx";
 import { STATUS_LABEL, STATUS_TONE } from "../../lib/states.ts";
+import { BATCH_LABEL } from "../../../../shared/constants.ts";
 import { Avatar, Badge, StateBadge } from "../../components/ui/Feedback.tsx";
 
 function daysLeftText(m: MemberListItem): string {
@@ -21,6 +22,7 @@ export function MembersTable({ items, base }: { items: MemberListItem[]; base: s
         <tr>
           <th>Member</th>
           <th>Mobile</th>
+          <th>Batch</th>
           <th>Plan</th>
           <th>Ends</th>
           <th className="num">Days left</th>
@@ -40,6 +42,7 @@ export function MembersTable({ items, base }: { items: MemberListItem[]; base: s
                 </span>
               </td>
               <td className="tabular muted">{formatMobile(m.phone)}</td>
+              <td className="muted">{m.batch ? BATCH_LABEL[m.batch] : "—"}</td>
               <td>{m.planName ?? <span className="muted">—</span>}</td>
               <td className="muted">{m.endDate ? formatDate(m.endDate) : "—"}</td>
               <td className="num tabular">{daysLeftText(m)}</td>

@@ -18,6 +18,7 @@ import { CancelSheet, FreezeSheet, PaymentSheet } from "./PlanActionSheets.tsx";
 import { MemberFormSheet } from "./MemberFormSheet.tsx";
 import { MemberMoreSheet } from "./MemberMoreSheet.tsx";
 import { PaymentDetailSheet, SubscriptionDetailSheet } from "./RecordSheets.tsx";
+import { BATCH_LABEL } from "../../../../shared/constants.ts";
 import { EditPlanSheet } from "./EditPlanSheet.tsx";
 
 type Open =
@@ -192,6 +193,8 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
               <dl className="kv">
                 <dt>Mobile</dt>
                 <dd className="tabular">{formatMobile(member.phone)}</dd>
+                <dt>Batch</dt>
+                <dd>{member.batch ? BATCH_LABEL[member.batch] : "—"}</dd>
                 <dt>Born</dt>
                 <dd>{formatDate(member.dob)}</dd>
                 <dt>Emergency</dt>

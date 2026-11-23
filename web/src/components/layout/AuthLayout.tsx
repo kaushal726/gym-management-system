@@ -30,6 +30,8 @@ interface Props {
   chips?: string[];
   /** Phones: fill exactly one screen with no scrolling. Only for short screens like the sign-in card. */
   fit?: boolean;
+  /** Phones: leave out the big logo, for screens whose card is tall. */
+  noArt?: boolean;
 }
 
 /** The GYMDESK headline used wherever there is no gym name to show. */
@@ -59,18 +61,20 @@ function PointsList({ points, className }: { points: AuthPoint[]; className: str
   );
 }
 
-export function AuthLayout({ eyebrow, heading, text, points, children, below, preview = "gym", poweredBy = false, monogram, chips, fit = false }: Props) {
+export function AuthLayout({ eyebrow, heading, text, points, children, below, preview = "gym", poweredBy = false, monogram, chips, fit = false, noArt = false }: Props) {
   return (
-    <div className={fit ? "auth auth--fit" : "auth"}>
+    <div className={["auth", fit && "auth--fit", noArt && "auth--no-art"].filter(Boolean).join(" ")}>
       <section className="auth__brand" aria-label="About">
-        <div className={monogram ? "auth__logo" : "auth__logo auth__logo--desktop"}>
+        <div className="auth__logo auth__logo--desktop">
           <Brand size={40} tone="dark" />
         </div>
-        <div className="auth__phone-art" aria-hidden>
-          {monogram ? <span className="auth__monogram">{monogram}</span> : <img src="/icon.svg" alt="" />}
-        </div>
+        {!noArt && (
+          <div className="auth__phone-art" aria-hidden>
+            {monogram ? <span className="auth__monogram">{monogram}</span> : <img src="/icon.svg" alt="" />}
+          </div>
+        )}
         <div className="auth__pitch enter">
-          <p className="auth__eyebrow">{eyebrow ?? "Built for Indian gyms"}</p>
+          <p className="auth__eyebrow">{eyebrow ?? "Members · Dues · Renewals"}</p>
           <h1>{heading}</h1>
           <p className="auth__text">{text}</p>
           {chips && (
