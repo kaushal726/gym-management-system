@@ -1,6 +1,6 @@
 /* Tapping a plan or a payment row opens its details and the actions allowed on it. */
 import { useState } from "react";
-import { FiCreditCard, FiPauseCircle, FiXCircle } from "react-icons/fi";
+import { FiCreditCard, FiEdit2, FiPauseCircle, FiXCircle } from "react-icons/fi";
 import type { Payment, Subscription } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { api } from "../../lib/api.ts";
@@ -24,7 +24,7 @@ export function SubscriptionDetailSheet({
   today: string;
   isOwner: boolean;
   onClose: () => void;
-  onAction: (action: "pay" | "freeze" | "cancel", sub: Subscription) => void;
+  onAction: (action: "pay" | "freeze" | "cancel" | "editPlan", sub: Subscription) => void;
 }) {
   if (!sub) return null;
   const live = !sub.cancelledAt;
@@ -94,6 +94,11 @@ export function SubscriptionDetailSheet({
             {(running || sub.startDate > today) && (
               <Button icon={<FiPauseCircle />} onClick={() => onAction("freeze", sub)}>
                 Freeze
+              </Button>
+            )}
+            {isOwner && (
+              <Button icon={<FiEdit2 />} onClick={() => onAction("editPlan", sub)}>
+                Edit plan
               </Button>
             )}
             {isOwner && (

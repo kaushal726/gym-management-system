@@ -5,6 +5,7 @@ import { PAYMENT_MODES, MAX_FREEZE_DAYS, type StaffRole } from "../../../../shar
 import { addDays, daysBetween, planEndDate, todayIn } from "../../../../shared/dates.ts";
 import { canVoid, dueOf, formatRupees, maxRefund, totalCharge } from "../../../../shared/money.ts";
 import { overlapsLive } from "../../../../shared/membership.ts";
+import { EDIT_PROBLEM_MESSAGE, planEdit } from "../../../../shared/subscriptionEdit.ts";
 import type { AppEnv, Env } from "../../env.ts";
 import { currentStaff, currentUser, ownerOnly } from "../../auth/guards.ts";
 import { auditStatement } from "../../lib/audit.ts";
@@ -244,6 +245,66 @@ billingRoutes.post("/subscriptions/:subscriptionId/cancel", ownerOnly, async (c)
   }
   await c.env.DB.batch(statements);
   return c.json({ ok: true });
+});
+
+/** Owner fixes a plan a member already took: another plan, another start date or another price. Payments stay as they are. */
+billingRoutes.patch("/subscriptions/:subscriptionId", ownerOnly, async (c) => {
+  const { gym } = currentStaff(c);
+  const user = currentUser(c);
+  const today = todayIn(gym.timezone);
+  const sub = await getSubscription(c.env.DB, gym.id, c.req.param("subscriptionId"), today);
+  if (!sub) throw notFound();
+  if (sub.cancelled) throw conflict("This plan was cancelled.");
+  const body = asBody(await c.req.json());
+  const reason = text(body, "reason", { max: 200 });
+  const startDate = date(body, "startDate");
+  if (daysBetween(today, startDate) > MAX_FUTURE_START_DAYS) throw badInput("startDate");
+  const finalPricePaise = paise(body, "finalPricePaise");
+
+  const planId = optionalText(body, "planId", { max: 40 }) ?? sub.planId;
+  const plan =
+    planId === sub.planId
+      ? null
+      : await c.env.DB.prepare("SELECT * FROM plans WHERE gym_id = ?1 AND id = ?2 AND active = 1 AND kind = ?3").bind(gym.id, planId, sub.kind).first<PlanRow>();
+  if (planId !== sub.planId && !plan) throw badInput("planId");
+  const snapshot = plan
+    ? { planId: plan.id, planName: plan.name, durationMonths: plan.duration_months, durationDays: plan.duration_days, maxFreezeDays: plan.max_freeze_days, commissionPct: plan.trainer_commission_pct, listPricePaise: plan.price_paise }
+    : null;
+  const length = snapshot ?? { durationMonths: sub.durationMonths, durationDays: sub.durationDays };
+  const listPricePaise = snapshot?.listPricePaise ?? sub.listPricePaise;
+
+  const result = planEdit(sub, { startDate, durationMonths: length.durationMonths, durationDays: length.durationDays, finalPricePaise });
+  if ("problem" in result) throw badInput(result.problem === "DATES_LOCKED_BY_FREEZE" ? "startDate" : "finalPricePaise", EDIT_PROBLEM_MESSAGE[result.problem]);
+  const { endDate } = result;
+  const siblings = (await subscriptionsOfMember(c.env.DB, sub.memberId, today)).filter((s) => s.kind === sub.kind);
+  if (overlapsLive(siblings, startDate, endDate, sub.id)) throw new ApiError(409, "These dates overlap another plan of this member.", "startDate");
+
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE subscriptions SET start_date = ?1, end_date = ?2, final_price_paise = ?3, list_price_paise = ?4, discount_reason = ?5 WHERE id = ?6`,
+    ).bind(startDate, endDate, finalPricePaise, listPricePaise, finalPricePaise === listPricePaise ? null : reason, sub.id),
+  ];
+  if (snapshot) {
+    statements.push(
+      c.env.DB.prepare(
+        "UPDATE subscriptions SET plan_id = ?1, plan_name = ?2, duration_months = ?3, duration_days = ?4, max_freeze_days = ?5, trainer_commission_pct = ?6 WHERE id = ?7",
+      ).bind(snapshot.planId, snapshot.planName, snapshot.durationMonths, snapshot.durationDays, snapshot.maxFreezeDays, snapshot.commissionPct, sub.id),
+    );
+  }
+  statements.push(
+    auditStatement(c.env.DB, {
+      gymId: gym.id,
+      actorId: user.id,
+      action: "SUB_EDIT",
+      entity: "subscription",
+      entityId: sub.id,
+      before: { plan: sub.planName, startDate: sub.startDate, endDate: sub.endDate, finalPricePaise: sub.finalPricePaise },
+      after: { plan: snapshot?.planName ?? sub.planName, startDate, endDate, finalPricePaise },
+      reason,
+    }),
+  );
+  await c.env.DB.batch(statements);
+  return c.json({ ok: true, endDate });
 });
 
 billingRoutes.post("/subscriptions/:subscriptionId/freezes", async (c) => {

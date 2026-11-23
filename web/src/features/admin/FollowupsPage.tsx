@@ -55,17 +55,18 @@ export function FollowupsPage() {
           <p>Renewals, dues and leads to call or WhatsApp. New ones come in every morning.</p>
         </div>
       </div>
-      <Tabs
-        label="Show"
-        value={view}
-        onChange={setView}
-        options={[
-          { value: "open", label: "To do" },
-          { value: "done", label: "Done" },
-        ]}
-      />
-
       <div className="card">
+        <div className="card__bar">
+          <Tabs
+            label="Show"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "open", label: "To do" },
+              { value: "done", label: "Done" },
+            ]}
+          />
+        </div>
         {error && !data ? (
           <ErrorState message={error.message} onRetry={reload} />
         ) : loading && !data ? (

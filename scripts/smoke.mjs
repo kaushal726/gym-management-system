@@ -374,7 +374,7 @@ const gymCalls = [
   ["POST", `/subscriptions/${memberSub}/cancel`], ["POST", `/subscriptions/${memberSub}/freezes`], ["POST", `/members/${raviId}/reject`], ["POST", `/members/${raviId}/archive`],
   ["POST", `/members/${raviId}/unarchive`], ["POST", `/members/${raviId}/anonymise`], ["POST", `/members/${raviId}/claim-link`], ["POST", `/members/${raviId}/checkin`],
   ["POST", `/followups/${fu.id}/contacted`], ["POST", "/plans"], ["POST", "/staff"],
-  ["PATCH", `/members/${raviId}`], ["PATCH", "/settings"], ["PATCH", `/plans/${monthly}`], ["PATCH", `/staff/${encodeURIComponent(`newowner-${RUN}@gymdesk.test`)}`],
+  ["PATCH", `/members/${raviId}`], ["PATCH", `/subscriptions/${memberSub}`], ["PATCH", "/settings"], ["PATCH", `/plans/${monthly}`], ["PATCH", `/staff/${encodeURIComponent(`newowner-${RUN}@gymdesk.test`)}`],
 ];
 const platformCalls = [
   ["GET", "/gyms"], ["GET", `/gyms/${gymId}`], ["POST", "/gyms"], ["PATCH", `/gyms/${gymId}`], ["POST", `/gyms/${gymId}/pause`], ["POST", `/gyms/${gymId}/resume`],
@@ -450,4 +450,34 @@ r = await outsider.get("/api/auth/session");
 ok(r.body.memberOf.some((m) => m.gymId === otherGymId), "they are linked straight away, without signing in again", r.body.memberOf);
 r = await outsider.get(`/api/public/me/gyms/${gymId}`);
 ok(r.status === 404, "being a member at one gym opens nothing at another");
+
+// The owner edits a plan a member already took: plan, start date and price. Payments stay; dues follow.
+r = await newOwner.post(`${G}/members`, { name: "Edit Plan Person", phone: phone(911) });
+const editMemberId = r.body.id;
+r = await newOwner.post(`${G}/members/${editMemberId}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: { amountPaise: 100000, mode: "CASH", note: null } });
+ok(r.status === 201, "a member takes a monthly plan and pays part of it", r.body);
+const editSubId = r.body.subscriptionId;
+const editBase = { planId: monthly, startDate: today, finalPricePaise: 150000, reason: "Desk fix" };
+r = await newOwner.post(`${G}/staff`, { email: `editmgr-${RUN}@gymdesk.test`, role: "MANAGER" });
+const editManager = await new Client("Edit Manager").login(`editmgr-${RUN}@gymdesk.test`);
+r = await editManager.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, finalPricePaise: 120000 });
+ok(r.status === 403, "a manager cannot edit a member's plan", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, finalPricePaise: 90000 });
+ok(r.status === 400 && r.body.field === "finalPricePaise", "the price cannot go below what was already paid", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, reason: "" });
+ok(r.status === 400 && r.body.field === "reason", "an edit needs a reason", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 380000, startDate: addDays(today, 1) });
+ok(r.status === 200 && r.body.endDate > addDays(today, 85) && r.body.endDate < addDays(today, 95), "the owner switches the plan to quarterly with a new start and price", r.body);
+r = await newOwner.get(`${G}/members/${editMemberId}`);
+const editedSub = r.body.subscriptions.find((x) => x.id === editSubId);
+ok(editedSub.planName === "Quarterly" && editedSub.durationMonths === 3 && editedSub.startDate === addDays(today, 1) && editedSub.finalPricePaise === 380000, "the plan now shows the new plan, dates and price", editedSub);
+ok(editedSub.paidPaise === 100000 && editedSub.duePaise === 280000, "payments stay and dues follow the new price", editedSub);
+r = await newOwner.get(`${G}/audit`);
+ok(r.body.items.some((x) => x.action === "SUB_EDIT" && x.reason === "Desk fix"), "the edit is in the audit log with its reason");
+r = await newOwner.post(`${G}/subscriptions/${editSubId}/freezes`, { fromDate: addDays(today, 2), days: 3, reason: "Travel" });
+ok(r.status === 201, "the plan gets a freeze", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 380000, startDate: addDays(today, 2) });
+ok(r.status === 400 && r.body.field === "startDate", "a frozen plan's dates are locked", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 360000, startDate: addDays(today, 1) });
+ok(r.status === 200 && r.body.endDate === addDays(editedSub.endDate, 3), "a frozen plan's price can still change and its end date stays", r.body);
 console.log(`\nAll ${checks} checks passed.`);

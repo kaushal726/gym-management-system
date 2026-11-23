@@ -48,22 +48,21 @@ export function MembersPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div className="input-affix">
-          <FiSearch className="input-affix__prefix" aria-hidden />
-          <input className="input" type="search" placeholder="Search name or mobile" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search members" />
-        </div>
-        <div className="chips" role="toolbar" aria-label="Filter members">
-          {VISIBLE_FILTERS.map((f) => (
-            <button key={f} type="button" className="chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
-              {FILTER_LABEL[f]}
-              {data && <span className="chip__count">{data.counts[f]}</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="card">
+        <div className="card__bar card__bar--tools">
+          <div className="input-affix">
+            <FiSearch className="input-affix__prefix" aria-hidden />
+            <input className="input" type="search" placeholder="Search name or mobile" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search members" />
+          </div>
+          <div className="chips" role="toolbar" aria-label="Filter members">
+            {VISIBLE_FILTERS.map((f) => (
+              <button key={f} type="button" className="chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                {FILTER_LABEL[f]}
+                {data && <span className="chip__count">{data.counts[f]}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
         {error && !data ? (
           <ErrorState message={error.message} onRetry={reload} />
         ) : loading && !data ? (

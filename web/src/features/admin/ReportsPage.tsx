@@ -35,7 +35,7 @@ export function ReportsPage() {
         </div>
       </div>
 
-      <div className="form-grid form-grid--2" style={{ maxWidth: 480 }}>
+      <div className="card card--pad form-grid form-grid--2">
         <TextField label="From" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
         <TextField label="To" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
       </div>

@@ -348,6 +348,21 @@ select.input {
 .card--pad {
   padding: var(--space-4);
 }
+/* Top strip of a card that holds its tabs or its search and filters, so controls never float on the page. */
+.card__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+}
+.card__bar--tools {
+  padding-bottom: var(--space-4);
+}
+.card__bar .tabs {
+  margin: 0 calc(-1 * var(--space-2));
+  border-bottom: 0;
+}
 @media (min-width: 768px) {
   .card--pad {
     padding: var(--space-5);
@@ -1291,6 +1306,11 @@ a.stat:hover {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-2);
+  padding: var(--space-4) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .quick {
   display: flex;
@@ -1313,9 +1333,8 @@ a.stat:hover {
   width: 60px;
   height: 60px;
   border-radius: 20px;
-  background: var(--surface);
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
   color: var(--ink);
   transition:
     transform var(--dur) var(--ease-out),
@@ -1453,6 +1472,6 @@ a.stat:hover {
     padding-top: 0;
   }
   .quick-row {
-    grid-template-columns: repeat(4, minmax(0, 120px));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

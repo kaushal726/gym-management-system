@@ -146,20 +146,20 @@ export function TodayPage() {
         data && (
           <div className="two-col">
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <section className="section">
-                <div className="section__head">
+              <section className="card">
+                <div className="card__bar">
                   <span className="section__title">Needs attention</span>
+                  <Tabs
+                    label="Needs attention"
+                    value={tab}
+                    onChange={setTab}
+                    options={[
+                      { value: "waiting", label: "Waiting", count: data.counts.pending },
+                      { value: "expiring", label: "Expiring", count: data.counts.expiringSoon },
+                    ]}
+                  />
                 </div>
-                <Tabs
-                  label="Needs attention"
-                  value={tab}
-                  onChange={setTab}
-                  options={[
-                    { value: "waiting", label: "Waiting", count: data.counts.pending },
-                    { value: "expiring", label: "Expiring", count: data.counts.expiringSoon },
-                  ]}
-                />
-                <div className="card" key={tab}>
+                <div key={tab}>
                   {tab === "waiting" ? (
                     data.pending.length === 0 ? (
                       <EmptyState icon={<FiInbox />} title="No one waiting" text="New sign-ups from the QR code show up here." />

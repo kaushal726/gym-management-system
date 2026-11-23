@@ -5,6 +5,7 @@ import { nextStartDate, overlapsLive, summarize, type SubDates } from "../shared
 import { remindersFor } from "../shared/reminders.ts";
 import { normalizeIndianMobile } from "../shared/phone.ts";
 import { gymAccess, gymIsOpen, saasReminderDue } from "../shared/saas.ts";
+import { planEdit } from "../shared/subscriptionEdit.ts";
 
 /** Small seeded generator so failures are reproducible. */
 function rng(seed: number) {
@@ -131,6 +132,61 @@ describe("money", () => {
     expect(unusedValue(300000, 30, 15)).toBe(150000);
     expect(unusedValue(300000, 30, 40)).toBe(300000);
     expect(unusedValue(300000, 30, 0)).toBe(0);
+  });
+});
+
+describe("editing a plan a member already took", () => {
+  const LENGTHS = [
+    { durationMonths: 1, durationDays: null },
+    { durationMonths: 3, durationDays: null },
+    { durationMonths: 12, durationDays: null },
+    { durationMonths: null, durationDays: 15 },
+  ];
+
+  it("after any mix of payments, voids and refunds, an accepted new price never leaves negative or wrong dues", () => {
+    const random = rng(7);
+    for (let run = 0; run < 3000; run++) {
+      const finalPricePaise = Math.floor(random() * 2_000_000);
+      const joiningFeePaise = random() < 0.3 ? Math.floor(random() * 100_000) : 0;
+      const charge = { finalPricePaise, joiningFeePaise, cancelled: false };
+      const payments: PaymentLike[] = [];
+      for (let step = 0; step < 8; step++) {
+        const action = random();
+        const due = dueOf(charge, payments);
+        if (action < 0.6 && due > 0) payments.push({ amountPaise: 1 + Math.floor(random() * due), voided: false });
+        else if (action < 0.8 && payments.length) {
+          const pick = payments[Math.floor(random() * payments.length)];
+          if (canVoid(payments, pick)) pick.voided = true;
+        } else if (maxRefund(payments) > 0) payments.push({ amountPaise: -(1 + Math.floor(random() * maxRefund(payments))), voided: false });
+      }
+      const paid = netPaid(payments);
+      const length = LENGTHS[run % LENGTHS.length];
+      const sub = { startDate: "2026-11-01", endDate: planEndDate("2026-11-01", length), ...length, joiningFeePaise, paidPaise: paid, freezeDaysUsed: 0 };
+      const newPrice = Math.floor(random() * 2_200_000) - 100_000;
+      const result = planEdit(sub, { startDate: sub.startDate, ...length, finalPricePaise: newPrice });
+      if ("problem" in result) {
+        expect(newPrice < 0 || newPrice + joiningFeePaise < paid).toBe(true);
+        continue;
+      }
+      const edited = { finalPricePaise: newPrice, joiningFeePaise, cancelled: false };
+      expect(dueOf(edited, payments)).toBe(newPrice + joiningFeePaise - paid);
+      expect(dueOf(edited, payments)).toBeGreaterThanOrEqual(0);
+      expect(result.endDate).toBe(sub.endDate);
+    }
+  });
+
+  it("for every start day 2024-2028, a new start or length moves the end date, and a freeze locks the dates", () => {
+    for (const [i, start] of DAYS_2024_2028.entries()) {
+      const from = LENGTHS[i % LENGTHS.length];
+      const to = LENGTHS[(i + 1) % LENGTHS.length];
+      const sub = { startDate: start, endDate: planEndDate(start, from), ...from, joiningFeePaise: 0, paidPaise: 0, freezeDaysUsed: 0 };
+      const newStart = addDays(start, (i % 9) - 4);
+      const moved = planEdit(sub, { startDate: newStart, ...to, finalPricePaise: 100 });
+      expect(moved).toEqual({ endDate: planEndDate(newStart, to) });
+      const frozenSub = { ...sub, endDate: addDays(sub.endDate, 5), freezeDaysUsed: 5 };
+      expect(planEdit(frozenSub, { startDate: newStart, ...to, finalPricePaise: 100 })).toEqual({ problem: "DATES_LOCKED_BY_FREEZE" });
+      expect(planEdit(frozenSub, { startDate: start, ...from, finalPricePaise: 100 })).toEqual({ endDate: frozenSub.endDate });
+    }
   });
 });
 

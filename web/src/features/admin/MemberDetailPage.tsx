@@ -18,10 +18,11 @@ import { CancelSheet, FreezeSheet, PaymentSheet } from "./PlanActionSheets.tsx";
 import { MemberFormSheet } from "./MemberFormSheet.tsx";
 import { MemberMoreSheet } from "./MemberMoreSheet.tsx";
 import { PaymentDetailSheet, SubscriptionDetailSheet } from "./RecordSheets.tsx";
+import { EditPlanSheet } from "./EditPlanSheet.tsx";
 
 type Open =
   | { kind: "activate"; plan: "MEMBERSHIP" | "PT" }
-  | { kind: "pay" | "freeze" | "cancel" | "sub"; sub: Subscription }
+  | { kind: "pay" | "freeze" | "cancel" | "editPlan" | "sub"; sub: Subscription }
   | { kind: "payment"; payment: Payment }
   | { kind: "edit" | "more" }
   | null;
@@ -260,6 +261,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
       <PaymentSheet open={open?.kind === "pay"} gymId={gymId} sub={open?.kind === "pay" ? open.sub : null} onClose={close} onDone={done} />
       <FreezeSheet open={open?.kind === "freeze"} gymId={gymId} sub={open?.kind === "freeze" ? open.sub : null} today={data.today} isOwner={isOwner} onClose={close} onDone={done} />
       <CancelSheet open={open?.kind === "cancel"} gymId={gymId} sub={open?.kind === "cancel" ? open.sub : null} today={data.today} onClose={close} onDone={done} />
+      {isOwner && <EditPlanSheet open={open?.kind === "editPlan"} gymId={gymId} sub={open?.kind === "editPlan" ? open.sub : null} onClose={close} onDone={done} />}
       <SubscriptionDetailSheet
         open={open?.kind === "sub"}
         sub={open?.kind === "sub" ? open.sub : null}

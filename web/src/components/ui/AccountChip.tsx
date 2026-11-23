@@ -5,7 +5,8 @@ import { useSession } from "../../lib/session.tsx";
 import { Avatar } from "./Feedback.tsx";
 import { IconButton } from "./Button.tsx";
 
-export function AccountChip() {
+/** `afterSignOut` is where switching account lands; a claim link passes itself so the right Gmail can open it. */
+export function AccountChip({ afterSignOut = "/" }: { afterSignOut?: string }) {
   const { session, signOut } = useSession();
   const user = session?.user;
   if (!user) return null;
@@ -16,7 +17,7 @@ export function AccountChip() {
         <small>Signed in as</small>
         <strong>{user.email}</strong>
       </span>
-      <IconButton label="Use another account" icon={<FiLogOut />} onClick={() => void signOut().then(() => navigate("/"))} />
+      <IconButton label="Use another account" icon={<FiLogOut />} onClick={() => void signOut().then(() => navigate(afterSignOut))} />
     </div>
   );
 }

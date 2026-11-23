@@ -26,6 +26,7 @@ const ACTION_LABEL: Record<string, string> = {
   SUB_CREATE: "Plan started",
   SUB_RENEW: "Plan renewed",
   SUB_CANCEL: "Plan cancelled",
+  SUB_EDIT: "Member's plan edited",
   SUB_FREEZE: "Plan frozen",
   PAYMENT_ADD: "Payment recorded",
   PAYMENT_VOID: "Payment voided",
@@ -38,7 +39,7 @@ const ACTION_LABEL: Record<string, string> = {
   STAFF_REMOVE: "Staff removed",
 };
 
-const SENSITIVE = new Set(["PAYMENT_VOID", "PAYMENT_REFUND", "SUB_CANCEL", "MEMBER_ANONYMISE", "STAFF_REMOVE", "MEMBER_PHONE_EDIT"]);
+const SENSITIVE = new Set(["PAYMENT_VOID", "PAYMENT_REFUND", "SUB_CANCEL", "SUB_EDIT", "MEMBER_ANONYMISE", "STAFF_REMOVE", "MEMBER_PHONE_EDIT"]);
 
 function changed(before: unknown, after: unknown): string[] {
   if (!before || !after || typeof before !== "object" || typeof after !== "object") return [];

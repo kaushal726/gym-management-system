@@ -12,6 +12,7 @@ import { SignInCard } from "./SignInCard.tsx";
 import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
 import { MEMBER_POINTS } from "./authPoints.tsx";
+import { AccountChip } from "../../components/ui/AccountChip.tsx";
 
 export function ClaimPage({ token }: { token: string }) {
   const { session, refresh } = useSession();
@@ -43,30 +44,40 @@ export function ClaimPage({ token }: { token: string }) {
       setBusy(false);
     }
   };
+  const hero = {
+    fit: true,
+    preview: "member" as const,
+    eyebrow: gymName,
+    heading: (
+      <>
+        Hi <em>{memberName.split(" ")[0]}</em>
+      </>
+    ),
+    text: "Your membership is ready. Link your Gmail once and your plan, dues and receipts open on your phone.",
+    points: MEMBER_POINTS,
+  };
   if (!session?.user) {
     return (
-      <AuthLayout fit preview="member" eyebrow={gymName} heading={`Hi ${memberName.split(" ")[0]}, your membership is ready.`} text="Sign in once and your plan, dues and receipts are always on your phone." points={MEMBER_POINTS}>
+      <AuthLayout {...hero}>
         <SignInCard title="Continue with Google" subtitle="Use the Gmail you want to keep for this gym." />
       </AuthLayout>
     );
   }
   return (
-    <NarrowLayout title={gymName}>
-      {(
-        <div className="card card--pad form-grid enter">
-          <span className="state-box__icon" aria-hidden>
-            <FiLink />
-          </span>
-          <h1>Link your membership</h1>
-          <p className="muted">
-            This connects the membership of <strong>{memberName}</strong> at {gymName} to {session.user.email}.
+    <AuthLayout {...hero}>
+      <div className="card signin enter">
+        <div>
+          <h2 className="signin__title">Link this Gmail</h2>
+          <p className="muted signin__sub">
+            {memberName}'s plan at {gymName} will open with this account. Not yours? Switch first.
           </p>
-          {error && <Notice tone="danger">{error}</Notice>}
-          <Button variant="primary" block loading={busy} onClick={() => void link()}>
-            Link and continue
-          </Button>
         </div>
-      )}
-    </NarrowLayout>
+        <AccountChip afterSignOut={`/claim/${token}`} />
+        {error && <Notice tone="danger">{error}</Notice>}
+        <Button variant="primary" block icon={<FiLink />} loading={busy} onClick={() => void link()}>
+          Link and continue
+        </Button>
+      </div>
+    </AuthLayout>
   );
 }
