@@ -1,0 +1,19 @@
+# Cloudflare Pages project "gymdeskapp": the public site and API at https://gymdeskapp.pages.dev.
+# dist/ holds the built web app plus _worker.js (the API, bundled from worker/src). Deploy with `npm run deploy`.
+# Keep [vars] and the D1 binding the same as ../wrangler.toml: scripts/check-config.mjs checks it.
+name = "gymdeskapp"
+pages_build_output_dir = "../dist"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-management-system"
+database_id = "8e0f6de2-6519-4a7a-a6fd-4a173a90a9d9"
+
+[vars]
+PUBLIC_URL = "https://gymdeskapp.pages.dev"
+GOOGLE_CLIENT_ID = "606855341495-7ejam7rdcd8ulijffsiv1gk4fb4865ni.apps.googleusercontent.com"
+VAPID_PUBLIC_KEY = "BCkSqtcIqWkAuSFMeDfeOuZmvVjHwjDL6ahPPJ9BD43M8wro_SEwcryEgjH93g6u8aCWHqhN0HAwbprHUJ_Php0"
+VAPID_SUBJECT = "https://gymdeskapp.pages.dev"
+ALLOW_GYM_SIGNUP = "0"

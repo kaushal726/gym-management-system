@@ -6,14 +6,12 @@ import { useSession } from "./lib/session.tsx";
 import { Button } from "./components/ui/Button.tsx";
 import { Skeleton } from "./components/ui/Feedback.tsx";
 import { StatusScreen } from "./components/layout/StatusScreen.tsx";
+import { Protected, type Guard } from "./components/layout/Protected.tsx";
 import { HomePage } from "./features/auth/HomePage.tsx";
 import { ClaimPage } from "./features/auth/ClaimPage.tsx";
 import { JoinPage } from "./features/join/JoinPage.tsx";
 import { PosterPage } from "./features/join/PosterPage.tsx";
 import { MemberPage } from "./features/member/MemberPage.tsx";
-import { SignInCard } from "./features/auth/SignInCard.tsx";
-import { AuthLayout } from "./components/layout/AuthLayout.tsx";
-import { GYM_POINTS } from "./features/auth/authPoints.tsx";
 
 const AdminApp = lazy(() => import("./features/admin/AdminApp.tsx"));
 const PlatformPage = lazy(() => import("./features/platform/PlatformPage.tsx").then((m) => ({ default: m.PlatformPage })));
@@ -34,19 +32,37 @@ function NotFound() {
   return <StatusScreen art="lost" title="This page wandered off" text="The link may be old or mistyped. Let's get you back." />;
 }
 
-function route(path: string): ReactNode {
-  let p: Record<string, string> | null;
-  if (path === "/") return <HomePage />;
-  if ((p = matchPath("/g/:slug", path))) return <JoinPage slug={p.slug} />;
-  if ((p = matchPath("/poster/:slug", path))) return <PosterPage slug={p.slug} />;
-  if ((p = matchPath("/claim/:token", path))) return <ClaimPage token={p.token} />;
-  if (path === "/me") return <MemberPage />;
-  if ((p = matchPath("/me/:gymId", path))) return <MemberPage gymId={p.gymId} />;
-  if (path === "/platform") return <PlatformPage />;
-  if ((p = matchPath("/platform/gyms/:gymId", path))) return <PlatformGymPage gymId={p.gymId} />;
-  if (path === "/new-gym") return <NewGymPage />;
-  if (path.startsWith("/admin/")) return <AdminApp path={path} />;
-  return <NotFound />;
+interface RouteDef {
+  pattern: string;
+  /** Who may open it. See Protected for what each guard means. */
+  guard: Guard;
+  render: (params: Record<string, string>, path: string) => ReactNode;
+}
+
+/** Every page and its guard, in one table. "/admin/*" matches everything under /admin/. */
+const ROUTES: RouteDef[] = [
+  { pattern: "/", guard: "public", render: () => <HomePage /> },
+  { pattern: "/g/:slug", guard: "public", render: (p) => <JoinPage slug={p.slug} /> },
+  { pattern: "/poster/:slug", guard: "public", render: (p) => <PosterPage slug={p.slug} /> },
+  { pattern: "/claim/:token", guard: "public", render: (p) => <ClaimPage token={p.token} /> },
+  { pattern: "/me", guard: "member", render: () => <MemberPage /> },
+  { pattern: "/me/:gymId", guard: "member", render: (p) => <MemberPage gymId={p.gymId} /> },
+  { pattern: "/platform", guard: "platform", render: () => <PlatformPage /> },
+  { pattern: "/platform/gyms/:gymId", guard: "platform", render: (p) => <PlatformGymPage gymId={p.gymId} /> },
+  { pattern: "/new-gym", guard: "gymSignup", render: () => <NewGymPage /> },
+  { pattern: "/admin/*", guard: "staff", render: (_p, path) => <AdminApp path={path} /> },
+];
+
+function resolve(path: string): { route: RouteDef; params: Record<string, string> } | null {
+  for (const route of ROUTES) {
+    if (route.pattern.endsWith("/*")) {
+      if (path.startsWith(route.pattern.slice(0, -1))) return { route, params: {} };
+      continue;
+    }
+    const params = matchPath(route.pattern, path);
+    if (params) return { route, params };
+  }
+  return null;
 }
 
 export function App() {
@@ -68,15 +84,9 @@ export function App() {
       />
     );
   }
-  if (path.startsWith("/admin/") && !session?.user) {
-    return (
-      <AuthLayout heading="Your gym's desk, on your phone." text="Sign in with the Google account your gym owner added." points={GYM_POINTS}>
-        <SignInCard title="Staff sign in" subtitle="Owners, managers and trainers sign in with Google." />
-      </AuthLayout>
-    );
-  }
+  const match = resolve(path);
   // Each page fades in on navigation; the staff app animates its own content so its shell stays put.
-  const page = route(path);
+  const page = match ? <Protected guard={match.route.guard}>{match.route.render(match.params, path)}</Protected> : <NotFound />;
   return (
     <Suspense fallback={<Loading />}>
       {path.startsWith("/admin/") ? (

@@ -7,7 +7,7 @@ import { ageOn, todayIn } from "../../../../shared/dates.ts";
 import { matchesFilter, matchesSearch } from "../../../../shared/filters.ts";
 import { nextStartDate } from "../../../../shared/membership.ts";
 import type { AppEnv } from "../../env.ts";
-import { currentUser, ownerOnly } from "../../auth/guards.ts";
+import { currentStaff, currentUser, ownerOnly } from "../../auth/guards.ts";
 import { auditStatement } from "../../lib/audit.ts";
 import { randomToken, sha256Hex } from "../../lib/crypto.ts";
 import { ApiError, badInput, conflict, notFound } from "../../lib/http.ts";
@@ -49,7 +49,7 @@ function readMemberInput(body: Body, today: string) {
 }
 
 memberRoutes.get("/members", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const today = todayIn(gym.timezone);
   const filterParam = c.req.query("filter") ?? "all";
   const filter: MemberFilter = (MEMBER_FILTERS as readonly string[]).includes(filterParam) ? (filterParam as MemberFilter) : "all";
@@ -61,7 +61,7 @@ memberRoutes.get("/members", async (c) => {
 });
 
 memberRoutes.post("/members", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone));
   const taken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2").bind(gym.id, input.phone).first();
@@ -78,7 +78,7 @@ memberRoutes.post("/members", async (c) => {
 });
 
 memberRoutes.get("/members/:memberId", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   const today = todayIn(gym.timezone);
   const [subs, payments, freezes, visits, history] = await Promise.all([
@@ -117,7 +117,7 @@ memberRoutes.get("/members/:memberId", async (c) => {
 });
 
 memberRoutes.patch("/members/:memberId", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone));
@@ -157,7 +157,7 @@ memberRoutes.patch("/members/:memberId", async (c) => {
 });
 
 memberRoutes.post("/members/:memberId/reject", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   if (member.status !== "PENDING" && member.status !== "LEAD") throw conflict("Only a pending request can be rejected.");
@@ -170,7 +170,7 @@ memberRoutes.post("/members/:memberId/reject", async (c) => {
 });
 
 memberRoutes.post("/members/:memberId/archive", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   const reason = text(asBody(await c.req.json()), "reason", { max: 200 });
@@ -182,7 +182,7 @@ memberRoutes.post("/members/:memberId/archive", async (c) => {
 });
 
 memberRoutes.post("/members/:memberId/unarchive", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   await c.env.DB.batch([
@@ -194,7 +194,7 @@ memberRoutes.post("/members/:memberId/unarchive", async (c) => {
 
 /** Data deletion request (DPDP): personal details are wiped, payment rows stay for the accounts. */
 memberRoutes.post("/members/:memberId/anonymise", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   const reason = text(asBody(await c.req.json()), "reason", { max: 200 });
@@ -210,7 +210,7 @@ memberRoutes.post("/members/:memberId/anonymise", ownerOnly, async (c) => {
 });
 
 memberRoutes.post("/members/:memberId/claim-link", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   const token = randomToken();
@@ -238,7 +238,7 @@ memberRoutes.post("/members/:memberId/claim-link", async (c) => {
 
 /** Check-in marked at the desk. `at` is set when the desk phone recorded it offline and is syncing now. */
 memberRoutes.post("/members/:memberId/checkin", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
   if (member.status !== "JOINED") throw conflict("Only members with a plan can be checked in.");
@@ -263,7 +263,7 @@ memberRoutes.post("/members/:memberId/checkin", async (c) => {
 });
 
 memberRoutes.get("/checkins", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const day = c.req.query("day") ?? todayIn(gym.timezone);
   const { results } = await c.env.DB.prepare(
     `SELECT a.id, a.at, a.result, a.method, m.id AS member_id, m.name, m.phone, u.picture_url FROM attendance a

@@ -70,15 +70,23 @@ To run the daily job for any date locally (DEV_AUTH only), POST to `/api/dev/cro
 
 ## Deploy (Cloudflare free plan)
 
-1. **Google sign-in.** In Google Cloud Console, go to APIs & Services, then Credentials. Create an OAuth client ID of type **Web application**. Add the site's URL (and `http://localhost:5190` for testing) under *Authorized JavaScript origins*. Put the client ID in `GOOGLE_CLIENT_ID` in `wrangler.toml`. It is public.
-2. **Secrets** (never committed):
+Live site: **https://gymdeskapp.pages.dev**
+
+- **Cloudflare Pages (`gymdeskapp`, config `pages/wrangler.toml`)** serves the web app and the API. The API is `worker/src` bundled into `dist/_worker.js`.
+- **The Worker (`gym-management-system`, config `wrangler.toml`)** runs the hourly cron and redirects its old workers.dev address to the Pages URL.
+- Both use the same D1 database and the same `[vars]`. `scripts/check-config.mjs` stops a deploy if the two configs differ.
+
+Steps:
+
+1. **Google sign-in.** In Google Cloud (project `gym-desk-515607`), go to Clients → `GymDesk web` → *Authorized JavaScript origins*. Add `https://gymdeskapp.pages.dev`, plus `http://localhost:5190` for local testing.
+2. **Secrets** go on both the Worker and the Pages project, never in git: `VAPID_PRIVATE_JWK` and `PLATFORM_ADMIN_EMAILS`.
 
    ```bash
    npx wrangler secret put VAPID_PRIVATE_JWK
    ```
 
    ```bash
-   npx wrangler secret put PLATFORM_ADMIN_EMAILS
+   cd pages && npx wrangler pages secret put VAPID_PRIVATE_JWK --project-name gymdeskapp
    ```
 
 3. **Schema:**
@@ -87,13 +95,11 @@ To run the daily job for any date locally (DEV_AUTH only), POST to `/api/dev/cro
    npm run db:migrate:remote
    ```
 
-4. **Build and deploy, from `master` only.** Merge the feature PR first, then `git checkout master && git pull`. The deploy script refuses any other branch and any uncommitted changes:
+4. **Deploy, from `master` only.** Merge the feature PR first, then `git checkout master && git pull`. `npm run deploy` refuses any other branch, uncommitted changes or mismatched configs. It builds the web app, bundles the API, deploys Pages, then deploys the cron Worker:
 
    ```bash
    npm run deploy
    ```
-
-5. Sign in as the platform admin, open `/platform`, create the gym with the owner's Gmail, and print the QR poster from Settings.
 
 Free-plan limits that shaped the design:
 - Workers allow 50 outgoing requests per run. Pushes wait in `push_queue`, and the hourly cron sends 40 at a time.

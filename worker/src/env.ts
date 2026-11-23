@@ -14,6 +14,8 @@ export interface Env {
   PLATFORM_ADMIN_EMAILS?: string;
   /** "1" lets anyone signed in create their own gym (self-serve SaaS signup). */
   ALLOW_GYM_SIGNUP?: string;
+  /** The one public address (Cloudflare Pages). Requests to any other host are redirected there. Empty locally. */
+  PUBLIC_URL?: string;
   /** "1" only in .dev.vars: enables the local sign-in without Google and the manual cron route. */
   DEV_AUTH?: string;
 }

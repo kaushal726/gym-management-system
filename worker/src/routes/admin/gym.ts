@@ -7,7 +7,7 @@ import { matchesFilter } from "../../../../shared/filters.ts";
 import { MAX_AMOUNT_PAISE } from "../../../../shared/money.ts";
 import { REMINDER_LABEL, reminderMessage, type ReminderType } from "../../../../shared/reminders.ts";
 import type { AppEnv } from "../../env.ts";
-import { currentUser, ownerOnly } from "../../auth/guards.ts";
+import { currentStaff, currentUser, ownerOnly } from "../../auth/guards.ts";
 import { auditStatement } from "../../lib/audit.ts";
 import { ApiError, badInput, conflict, notFound } from "../../lib/http.ts";
 import { newId, nowIso } from "../../lib/ids.ts";
@@ -44,7 +44,7 @@ function summarizeCollection(rows: { amount_paise: number; mode: PaymentMode; co
 }
 
 gymRoutes.get("/dashboard", async (c) => {
-  const { gym, role } = c.get("staff");
+  const { gym, role } = currentStaff(c);
   const today = todayIn(gym.timezone);
   const owner = role === "OWNER";
   const [roster, followups, checkins] = await Promise.all([
@@ -86,7 +86,7 @@ gymRoutes.get("/dashboard", async (c) => {
 });
 
 gymRoutes.get("/followups", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const today = todayIn(gym.timezone);
   const done = c.req.query("view") === "done";
   const since = addDays(today, -FOLLOWUP_LOOKBACK_DAYS);
@@ -138,7 +138,7 @@ gymRoutes.get("/followups", async (c) => {
 });
 
 gymRoutes.post("/followups/:followupId/contacted", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const note = optionalText(asBody(await c.req.json()), "note", { max: 300 });
   const result = await c.env.DB.prepare("UPDATE followups SET contacted_at = ?1, contacted_by = ?2, note = ?3 WHERE id = ?4 AND gym_id = ?5 AND contacted_at IS NULL")
@@ -148,10 +148,10 @@ gymRoutes.post("/followups/:followupId/contacted", async (c) => {
   return c.json({ ok: true });
 });
 
-gymRoutes.get("/settings", (c) => c.json<GymSettings>(toGymSettings(c.get("staff").gym)));
+gymRoutes.get("/settings", (c) => c.json<GymSettings>(toGymSettings(currentStaff(c).gym)));
 
 gymRoutes.patch("/settings", async (c) => {
-  const { gym, role } = c.get("staff");
+  const { gym, role } = currentStaff(c);
   const user = currentUser(c);
   const body = asBody(await c.req.json());
   const timezone = text(body, "timezone", { max: 64 });
@@ -227,7 +227,7 @@ function settingsChanges(before: GymSettings, after: Partial<GymSettings>): stri
 }
 
 gymRoutes.get("/plans", async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const { results } = await c.env.DB.prepare("SELECT * FROM plans WHERE gym_id = ?1 ORDER BY active DESC, kind, price_paise").bind(gym.id).all<PlanRow>();
   return c.json<{ items: Plan[] }>({ items: results.map(toPlan) });
 });
@@ -249,7 +249,7 @@ function readPlan(body: ReturnType<typeof asBody>) {
 }
 
 gymRoutes.post("/plans", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const plan = readPlan(asBody(await c.req.json()));
   const id = newId();
@@ -264,7 +264,7 @@ gymRoutes.post("/plans", ownerOnly, async (c) => {
 });
 
 gymRoutes.patch("/plans/:planId", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const before = await c.env.DB.prepare("SELECT * FROM plans WHERE gym_id = ?1 AND id = ?2").bind(gym.id, c.req.param("planId")).first<PlanRow>();
   if (!before) throw notFound();
@@ -281,7 +281,7 @@ gymRoutes.patch("/plans/:planId", ownerOnly, async (c) => {
 });
 
 gymRoutes.get("/staff", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const { results } = await c.env.DB.prepare(
     "SELECT st.invite_email, st.role, st.active, st.user_id, u.name FROM gym_staff st LEFT JOIN users u ON u.id = st.user_id WHERE st.gym_id = ?1 ORDER BY st.role DESC, st.invite_email",
   )
@@ -293,7 +293,7 @@ gymRoutes.get("/staff", ownerOnly, async (c) => {
 });
 
 gymRoutes.post("/staff", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const body = asBody(await c.req.json());
   const address = email(body, "email");
@@ -311,7 +311,7 @@ gymRoutes.post("/staff", ownerOnly, async (c) => {
 });
 
 gymRoutes.patch("/staff/:email", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const address = decodeURIComponent(c.req.param("email")).toLowerCase();
   const body = asBody(await c.req.json());
@@ -332,7 +332,7 @@ gymRoutes.patch("/staff/:email", ownerOnly, async (c) => {
 });
 
 gymRoutes.get("/audit", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const before = c.req.query("before") ?? "9999";
   const { results } = await c.env.DB.prepare(
     `SELECT a.*, u.name AS actor_name FROM audit_log a LEFT JOIN users u ON u.id = a.actor_id WHERE a.gym_id = ?1 AND a.at < ?2 ORDER BY a.at DESC LIMIT ?3`,
@@ -362,7 +362,7 @@ function reportRange(gymTimezone: string, from: string | undefined, to: string |
 }
 
 gymRoutes.get("/reports/collections", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const { start, end } = reportRange(gym.timezone, c.req.query("from"), c.req.query("to"));
   const rows = await paymentsBetween(c.env.DB, gym.id, start, end);
   const trainers = new Map<string, { collectedPaise: number; commissionPaise: number }>();
@@ -383,7 +383,7 @@ gymRoutes.get("/reports/collections", ownerOnly, async (c) => {
 });
 
 gymRoutes.get("/export/members.csv", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const today = todayIn(gym.timezone);
   const items = (await loadRoster(c.env.DB, gym, today)).map((e) => toListItem(e, today));
   const csv = toCsv(
@@ -394,7 +394,7 @@ gymRoutes.get("/export/members.csv", ownerOnly, async (c) => {
 });
 
 gymRoutes.get("/export/payments.csv", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const { start, end } = reportRange(gym.timezone, c.req.query("from"), c.req.query("to"));
   const rows = await paymentsBetween(c.env.DB, gym.id, start, end);
   const csv = toCsv(

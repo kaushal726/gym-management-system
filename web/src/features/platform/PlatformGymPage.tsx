@@ -31,7 +31,7 @@ const STATUS_ACTION = {
 export function PlatformGymPage({ gymId }: { gymId: string }) {
   const { session } = useSession();
   const toast = useToast();
-  const { data, error, loading, reload } = useApi<PlatformGymDetail>(session?.isPlatformAdmin ? `/platform/gyms/${gymId}` : null);
+  const { data, error, loading, reload } = useApi<PlatformGymDetail>(`/platform/gyms/${gymId}`);
   const [open, setOpen] = useState<Open>(null);
   const done = (message: string) => {
     setOpen(null);
@@ -39,7 +39,6 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
     reload();
   };
 
-  if (!session?.isPlatformAdmin) return null;
   const back = (
     <Link href="/platform" className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, minHeight: 32 }}>
       <FiArrowLeft aria-hidden /> All gyms
@@ -67,7 +66,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
   const statusAction = open === "pause" || open === "resume" || open === "archive" || open === "restore" ? open : null;
 
   return (
-    <NarrowLayout title="GymDesk Platform" subtitle={session.user?.email} wide>
+    <NarrowLayout title="GymDesk Platform" subtitle={session?.user?.email} wide>
       {back}
       <div className="card card--pad enter" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
@@ -87,7 +86,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         )}
         {gym.status === "ACTIVE" && gym.access === "PAUSED" && <Notice tone="danger">Paused automatically: the plan ended on {formatDate(gym.validTill)} and the {SAAS_GRACE_DAYS}-day grace is over. Record a payment to reopen.</Notice>}
         {gym.access === "GRACE" && <Notice tone="warning">The plan ended on {formatDate(gym.validTill)}. It pauses itself after {SAAS_GRACE_DAYS} days.</Notice>}
-        {gym.ownerEmail === session.user?.email && <Notice tone="warning">The owner is your platform email. Change it to the gym owner's own Gmail.</Notice>}
+        {gym.ownerEmail === session?.user?.email && <Notice tone="warning">The owner is your platform email. Change it to the gym owner's own Gmail.</Notice>}
         <div className="detail-actions">
           <div className="detail-actions__main">
             <Button variant="primary" icon={<FiCreditCard />} onClick={() => setOpen("billing")}>

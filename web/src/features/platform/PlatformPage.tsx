@@ -15,7 +15,6 @@ import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
 import type { Tone } from "../../lib/states.ts";
 import { GymCreateForm } from "./GymCreateForm.tsx";
-import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 
 export const ACCESS_TONE: Record<GymAccess, Tone> = { ACTIVE: "success", EXPIRING: "warning", GRACE: "warning", PAUSED: "danger", ARCHIVED: "neutral" };
 
@@ -38,20 +37,17 @@ function matches(g: PlatformGym, f: Filter): boolean {
 export function PlatformPage() {
   const { session, refresh } = useSession();
   const toast = useToast();
-  const { data, error, loading, reload } = useApi<{ items: PlatformGym[] }>(session?.isPlatformAdmin ? "/platform/gyms" : null);
+  const { data, error, loading, reload } = useApi<{ items: PlatformGym[] }>("/platform/gyms");
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
 
-  if (!session?.isPlatformAdmin) {
-    return <StatusScreen art="locked" title="This page is for GymDesk admins" text="Gym owners and staff manage their gym from the gym's own page." />;
-  }
   const items = data?.items ?? [];
   const count = (f: Filter) => items.filter((g) => matches(g, f)).length;
   const list = items.filter((g) => matches(g, filter));
   const totalActiveMembers = items.filter((g) => g.access !== "ARCHIVED").reduce((n, g) => n + g.activeMembers, 0);
 
   return (
-    <NarrowLayout title="GymDesk Platform" subtitle={session.user?.email} wide>
+    <NarrowLayout title="GymDesk Platform" subtitle={session?.user?.email} wide>
       <div className="page-head">
         <div>
           <h1>Gyms</h1>
@@ -130,7 +126,7 @@ export function PlatformPage() {
                   <span className="muted" style={{ fontSize: 12 }}>
                     {g.validTill ? `till ${formatDate(g.validTill)}` : "No end date"}
                   </span>
-                  {g.ownerEmail === session.user?.email && (
+                  {g.ownerEmail === session?.user?.email && (
                     <span style={{ fontSize: 12, color: "var(--warning)", display: "flex", gap: 4, alignItems: "center" }}>
                       <FiAlertTriangle aria-hidden /> Owner is you
                     </span>

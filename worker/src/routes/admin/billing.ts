@@ -6,7 +6,7 @@ import { addDays, daysBetween, planEndDate, todayIn } from "../../../../shared/d
 import { canVoid, dueOf, formatRupees, maxRefund, totalCharge } from "../../../../shared/money.ts";
 import { overlapsLive } from "../../../../shared/membership.ts";
 import type { AppEnv, Env } from "../../env.ts";
-import { currentUser, ownerOnly } from "../../auth/guards.ts";
+import { currentStaff, currentUser, ownerOnly } from "../../auth/guards.ts";
 import { auditStatement } from "../../lib/audit.ts";
 import { ApiError, badInput, conflict, notFound } from "../../lib/http.ts";
 import { newId, nowIso } from "../../lib/ids.ts";
@@ -55,7 +55,7 @@ function readPayment(body: Body | null, maxPaise: number) {
 }
 
 billingRoutes.post("/members/:memberId/subscriptions", async (c) => {
-  const { gym, role } = c.get("staff");
+  const { gym, role } = currentStaff(c);
   const user = currentUser(c);
   const member = await getMember(c.env.DB, gym.id, c.req.param("memberId"));
   if (!member || member.anonymised_at) throw notFound();
@@ -149,7 +149,7 @@ billingRoutes.post("/members/:memberId/subscriptions", async (c) => {
 });
 
 billingRoutes.post("/subscriptions/:subscriptionId/payments", async (c) => {
-  const { gym, role } = c.get("staff");
+  const { gym, role } = currentStaff(c);
   const user = currentUser(c);
   const today = todayIn(gym.timezone);
   const sub = await getSubscription(c.env.DB, gym.id, c.req.param("subscriptionId"), today);
@@ -173,7 +173,7 @@ billingRoutes.post("/subscriptions/:subscriptionId/payments", async (c) => {
 });
 
 billingRoutes.post("/payments/:paymentId/void", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const target = await c.env.DB.prepare("SELECT * FROM payments WHERE gym_id = ?1 AND id = ?2").bind(gym.id, c.req.param("paymentId")).first<{
     id: string;
@@ -206,7 +206,7 @@ billingRoutes.post("/payments/:paymentId/void", ownerOnly, async (c) => {
 });
 
 billingRoutes.post("/subscriptions/:subscriptionId/cancel", ownerOnly, async (c) => {
-  const { gym } = c.get("staff");
+  const { gym } = currentStaff(c);
   const user = currentUser(c);
   const today = todayIn(gym.timezone);
   const sub = await getSubscription(c.env.DB, gym.id, c.req.param("subscriptionId"), today);
@@ -247,7 +247,7 @@ billingRoutes.post("/subscriptions/:subscriptionId/cancel", ownerOnly, async (c)
 });
 
 billingRoutes.post("/subscriptions/:subscriptionId/freezes", async (c) => {
-  const { gym, role } = c.get("staff");
+  const { gym, role } = currentStaff(c);
   const user = currentUser(c);
   const today = todayIn(gym.timezone);
   const sub = await getSubscription(c.env.DB, gym.id, c.req.param("subscriptionId"), today);

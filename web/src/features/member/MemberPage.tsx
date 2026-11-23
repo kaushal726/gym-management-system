@@ -11,23 +11,13 @@ import { NarrowLayout } from "../../components/layout/NarrowLayout.tsx";
 import { ButtonLink } from "../../components/ui/Button.tsx";
 import { EmptyState, ErrorState, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
 import { Qr, upiLink } from "../../components/ui/Qr.tsx";
-import { SignInCard } from "../auth/SignInCard.tsx";
-import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
-import { MEMBER_POINTS } from "../auth/authPoints.tsx";
 import { FreezeList, MembershipHero, PaymentList, SubscriptionList, VisitSummary } from "./MemberSections.tsx";
 import { PushCard } from "./PushCard.tsx";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 
 export function MemberPage({ gymId }: { gymId?: string }) {
   const { session } = useSession();
-  if (!session?.user) {
-    return (
-      <AuthLayout heading="Your membership, on your phone." text="Days left, dues and every receipt, in one place." points={MEMBER_POINTS}>
-        <SignInCard title="See your membership" subtitle="Sign in with the Google account you used at your gym." />
-      </AuthLayout>
-    );
-  }
-  const gyms = session.memberOf;
+  const gyms = session?.memberOf ?? [];
   if (gyms.length === 0) {
     return (
       <NarrowLayout title="My membership">
