@@ -4,6 +4,8 @@
 :root {
   color-scheme: light;
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Headings: Outfit (bold, modern). Body: Plus Jakarta Sans (easy to read). Big numbers: Barlow Condensed. */
+  --font-heading: "Outfit Variable", "Plus Jakarta Sans Variable", system-ui, sans-serif;
   --font-display: "Barlow Condensed", "Plus Jakarta Sans Variable", system-ui, sans-serif;
 
   --bg: #f6f7f9;

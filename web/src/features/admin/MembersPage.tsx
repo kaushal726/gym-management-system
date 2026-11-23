@@ -12,6 +12,7 @@ import { EmptyState, ErrorState, ListSkeleton } from "../../components/ui/Feedba
 import { useAdmin } from "./AdminShell.tsx";
 import { MemberFormSheet } from "./MemberFormSheet.tsx";
 import { MemberRow } from "./MemberRow.tsx";
+import { MembersTable } from "./MembersTable.tsx";
 
 const SEARCH_DELAY_MS = 250;
 const VISIBLE_FILTERS: MemberFilter[] = MEMBER_FILTERS.filter((f) => f !== "frozen");
@@ -81,11 +82,16 @@ export function MembersPage() {
             }
           />
         ) : (
-          <div className="list">
-            {data?.items.map((m) => (
-              <MemberRow key={m.id} member={m} href={`${base}/members/${m.id}`} />
-            ))}
-          </div>
+          <>
+            <div className="list only-phone">
+              {data?.items.map((m) => (
+                <MemberRow key={m.id} member={m} href={`${base}/members/${m.id}`} />
+              ))}
+            </div>
+            <div className="only-desktop">
+              <MembersTable items={data?.items ?? []} base={base} />
+            </div>
+          </>
         )}
       </div>
 

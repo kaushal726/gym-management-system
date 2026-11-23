@@ -562,3 +562,128 @@
     top: var(--space-6);
   }
 }
+
+/* Headings font on brand names and bars too */
+.brand__name,
+.topbar__title,
+.auth__logo,
+.status__bar,
+.stat__label {
+  font-family: var(--font-heading);
+}
+
+/* ---------- Signed-in home ---------- */
+.home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  animation: pop-in var(--dur-slow) var(--ease-out) both;
+}
+.home-card > p {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+.home-card--list {
+  align-items: stretch;
+  text-align: left;
+}
+.home-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.home-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    transform var(--dur) var(--ease-out);
+}
+.home-link:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.home-link__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-soft-text);
+}
+.home-link__arrow {
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease-out);
+}
+.home-link:hover .home-link__arrow {
+  transform: translateX(3px);
+  color: var(--accent-strong);
+}
+.home-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.home-steps li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+}
+.home-steps strong {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+.home-steps span {
+  color: var(--text-3);
+}
+
+/* ---------- Phone list vs desktop table ---------- */
+.only-desktop {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .only-desktop {
+    display: block;
+  }
+  .only-phone {
+    display: none;
+  }
+}
+.table--rows tbody tr {
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+}
+.table--rows tbody tr:hover {
+  background: var(--surface-2);
+}
+.table--rows tbody tr:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+.table--rows td {
+  vertical-align: middle;
+}
