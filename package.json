@@ -14,7 +14,7 @@
     "typecheck": "tsc -p tsconfig.web.json && tsc -p tsconfig.worker.json",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
-    "deploy": "node scripts/check-deploy-branch.mjs && node scripts/check-config.mjs && npm run build && npm run bundle:api && (cd pages && wrangler pages deploy --project-name gymdeskapp --branch master --commit-dirty=false) && wrangler deploy",
+    "deploy": "node scripts/check-deploy-branch.mjs && node scripts/check-config.mjs && npm run build && npm run bundle:api && (cd pages && wrangler pages deploy --project-name gymdeskapp --branch master --commit-dirty=false) && rm -f dist/_worker.js && wrangler deploy",
     "bundle:api": "wrangler deploy --dry-run --outdir .wrangler/api-bundle >/dev/null && cp .wrangler/api-bundle/index.js dist/_worker.js"
   },
   "dependencies": {
