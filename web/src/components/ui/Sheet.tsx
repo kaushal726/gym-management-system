@@ -1,7 +1,7 @@
 /* One dialog for every screen size: a bottom drawer on phones, a centred modal from tablet up. */
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { FiX } from "react-icons/fi";
+import { PiXBold } from "react-icons/pi";
 import { IconButton } from "./Button.tsx";
 
 interface SheetProps {
@@ -58,7 +58,7 @@ export function Sheet({ open, title, description, onClose, children, footer, wid
             <h2 id={titleId}>{title}</h2>
             {description && <p>{description}</p>}
           </div>
-          <IconButton label="Close" icon={<FiX />} onClick={onClose} />
+          <IconButton label="Close" icon={<PiXBold />} onClick={onClose} />
         </div>
         <div className="sheet__body">{children}</div>
         {footer && <div className="sheet__foot">{footer}</div>}

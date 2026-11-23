@@ -1,6 +1,6 @@
 /* Reports (owner): collections for any date range, by mode and staff, trainer commission, and CSV downloads. */
 import { useState } from "react";
-import { FiDownload, FiFileText } from "react-icons/fi";
+import { PiDownloadSimpleBold, PiFileTextDuotone } from "react-icons/pi";
 import type { CollectionsReport } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatDate, localMonthStart, localToday } from "../../lib/format.ts";
@@ -26,10 +26,10 @@ export function ReportsPage() {
           <p>Money collected, by who and how.</p>
         </div>
         <div className="page-head__actions">
-          <ButtonLink href={`/api/gyms/${gymId}/export/payments.csv?${range}`} external icon={<FiDownload />}>
+          <ButtonLink href={`/api/gyms/${gymId}/export/payments.csv?${range}`} external icon={<PiDownloadSimpleBold />}>
             Payments CSV
           </ButtonLink>
-          <ButtonLink href={`/api/gyms/${gymId}/export/members.csv`} external icon={<FiDownload />}>
+          <ButtonLink href={`/api/gyms/${gymId}/export/members.csv`} external icon={<PiDownloadSimpleBold />}>
             Members CSV
           </ButtonLink>
         </div>
@@ -64,13 +64,13 @@ export function ReportsPage() {
             </div>
 
             <div className="two-col">
-              <section className="section">
-                <div className="section__head">
+              <section className="card">
+                <div className="card__head">
                   <span className="section__title">Entries</span>
                 </div>
-                <div className="card" style={{ overflowX: "auto" }}>
+                <div style={{ overflowX: "auto" }}>
                   {data.payments.length === 0 ? (
-                    <EmptyState icon={<FiFileText />} title="No payments in these dates" />
+                    <EmptyState icon={<PiFileTextDuotone />} title="No payments in these dates" />
                   ) : (
                     <table className="table">
                       <thead>
@@ -111,11 +111,11 @@ export function ReportsPage() {
               </section>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <section className="section">
-                  <div className="section__head">
+                <section className="card">
+                  <div className="card__head">
                     <span className="section__title">By staff</span>
                   </div>
-                  <div className="card card--pad">
+                  <div className="card__body">
                     {data.summary.byStaff.length === 0 ? (
                       <p className="muted">No collections.</p>
                     ) : (
@@ -132,11 +132,11 @@ export function ReportsPage() {
                     )}
                   </div>
                 </section>
-                <section className="section">
-                  <div className="section__head">
+                <section className="card">
+                  <div className="card__head">
                     <span className="section__title">Trainer commission</span>
                   </div>
-                  <div className="card card--pad">
+                  <div className="card__body">
                     {data.trainers.length === 0 ? (
                       <p className="muted" style={{ fontSize: 14 }}>
                         No personal-training payments in these dates.

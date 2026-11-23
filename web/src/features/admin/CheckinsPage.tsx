@@ -1,6 +1,6 @@
 /* Check-ins: today's visits as they happen (refreshes on its own), and a quick desk check-in by name or number. */
 import { useEffect, useState } from "react";
-import { FiCheckSquare, FiRefreshCw, FiSearch, FiWifiOff } from "react-icons/fi";
+import { PiArrowsClockwiseBold, PiCheckSquareDuotone, PiMagnifyingGlassBold, PiWifiSlashBold } from "react-icons/pi";
 import type { CheckinFeedItem, MemberListItem } from "../../../../shared/api.ts";
 import { formatMobile } from "../../../../shared/phone.ts";
 import { api, errorMessage } from "../../lib/api.ts";
@@ -50,7 +50,7 @@ export function CheckinsPage() {
   if (!gym.checkinEnabled) {
     return (
       <div className="page">
-        <EmptyState icon={<FiCheckSquare />} title="Check-in is off" text="Turn it on in Settings to let members check in from the QR code." />
+        <EmptyState icon={<PiCheckSquareDuotone />} title="Check-in is off" text="Turn it on in Settings to let members check in from the QR code." />
       </div>
     );
   }
@@ -63,19 +63,19 @@ export function CheckinsPage() {
           <h1>Check-ins</h1>
           <p>{feed.data ? `${feed.data.items.length} today` : " "}</p>
         </div>
-        <IconButton label="Refresh" icon={<FiRefreshCw />} onClick={feed.reload} />
+        <IconButton label="Refresh" icon={<PiArrowsClockwiseBold />} onClick={feed.reload} />
       </div>
 
       {queued > 0 && (
         <Notice tone="warning">
-          <FiWifiOff aria-hidden style={{ verticalAlign: "-2px" }} /> {queued} check-in{queued === 1 ? "" : "s"} saved offline. They sync when the internet is back.
+          <PiWifiSlashBold aria-hidden style={{ verticalAlign: "-2px" }} /> {queued} check-in{queued === 1 ? "" : "s"} saved offline. They sync when the internet is back.
         </Notice>
       )}
 
       <div className="card card--pad" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <h3>Check someone in at the desk</h3>
         <div className="input-affix">
-          <FiSearch className="input-affix__prefix" aria-hidden />
+          <PiMagnifyingGlassBold className="input-affix__prefix" aria-hidden />
           <input className="input" type="search" placeholder="Name or mobile" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Find member to check in" />
         </div>
         {joined.length > 0 && (
@@ -103,7 +103,7 @@ export function CheckinsPage() {
         ) : feed.loading && !feed.data ? (
           <ListSkeleton rows={5} />
         ) : feed.data && feed.data.items.length === 0 ? (
-          <EmptyState icon={<FiCheckSquare />} title="No check-ins yet today" text="Members scan the QR code at the entrance. Red means their plan has ended." />
+          <EmptyState icon={<PiCheckSquareDuotone />} title="No check-ins yet today" text="Members scan the QR code at the entrance. Red means their plan has ended." />
         ) : (
           <div className="list">
             {feed.data?.items.map((c) => (

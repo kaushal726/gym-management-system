@@ -543,8 +543,8 @@
   border-radius: var(--radius);
 }
 .auth__point-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 .auth__points--phone {
   display: flex;

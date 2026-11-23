@@ -1,6 +1,6 @@
 /* A taste of the app on the sign-in hero: a few small cards drifting gently, so people see what GymDesk does
  * before they sign in. Sample numbers only, nothing real. */
-import { FiBell, FiCheckCircle, FiTrendingUp } from "react-icons/fi";
+import { PiBellBold, PiCheckCircleBold, PiTrendUpBold } from "react-icons/pi";
 
 function MiniRing({ value, label }: { value: number; label: string }) {
   const r = 20;
@@ -21,7 +21,7 @@ export function GymPreview() {
     <div className="preview" aria-hidden>
       <div className="preview__card preview__card--a">
         <span className="preview__label">
-          <FiTrendingUp /> Collected today
+          <PiTrendUpBold /> Collected today
         </span>
         <span className="preview__value">₹27,700</span>
         <span className="preview__hint">11 payments · Cash ₹2,200 · UPI ₹25,500</span>
@@ -35,7 +35,7 @@ export function GymPreview() {
       </div>
       <div className="preview__card preview__card--c">
         <span className="preview__icon">
-          <FiBell />
+          <PiBellBold />
         </span>
         <span>
           <strong>Reminder sent</strong>
@@ -56,7 +56,7 @@ export function MemberPreview() {
       </div>
       <div className="preview__card preview__card--b">
         <span className="preview__icon">
-          <FiCheckCircle />
+          <PiCheckCircleBold />
         </span>
         <span>
           <strong>₹2,000 paid</strong>
@@ -65,7 +65,7 @@ export function MemberPreview() {
       </div>
       <div className="preview__card preview__card--c">
         <span className="preview__icon">
-          <FiBell />
+          <PiBellBold />
         </span>
         <span>
           <strong>Renew soon</strong>

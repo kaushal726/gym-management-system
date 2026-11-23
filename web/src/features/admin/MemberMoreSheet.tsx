@@ -1,7 +1,7 @@
 /* Less common actions on a member: send the app link on WhatsApp, check in by hand, freeze, reject, archive, delete data. */
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { FiArchive, FiCheckSquare, FiCopy, FiLink, FiMessageCircle, FiRotateCcw, FiTrash2, FiUserX } from "react-icons/fi";
+import { PiArchiveBold, PiArrowCounterClockwiseBold, PiCheckSquareBold, PiCopyBold, PiLinkBold, PiLinkBreakBold, PiTrashBold, PiUserMinusBold, PiWhatsappLogoBold } from "react-icons/pi";
 import type { ClaimLink, MemberDetail } from "../../../../shared/api.ts";
 import { whatsappLink } from "../../../../shared/phone.ts";
 import { api, errorMessage } from "../../lib/api.ts";
@@ -13,7 +13,7 @@ import { ReasonSheet } from "../../components/ui/ReasonSheet.tsx";
 import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 
-type Confirm = "reject" | "archive" | "anonymise" | null;
+type Confirm = "reject" | "archive" | "anonymise" | "unlink" | null;
 
 export function MemberMoreSheet({ open, detail, onClose, onDone }: { open: boolean; detail: MemberDetail; onClose: () => void; onDone: (message: string) => void }) {
   const { gymId, gym, isOwner } = useAdmin();
@@ -55,12 +55,12 @@ export function MemberMoreSheet({ open, detail, onClose, onDone }: { open: boole
     });
 
   const actions = [
-    !archived && member.status === "JOINED" && { icon: <FiLink />, title: member.linkedEmail ? "Send a new app link" : "Send app link on WhatsApp", sub: "They open it, sign in with Google, and see their plan", onClick: sendLink },
-    !archived && member.status === "JOINED" && gym.checkinEnabled && { icon: <FiCheckSquare />, title: "Check in now", sub: "Works offline too; syncs later", onClick: checkIn },
-    pending && { icon: <FiUserX />, title: "Reject request", sub: "Spam or duplicate sign-up", onClick: () => setConfirm("reject") },
-    !archived && !pending && { icon: <FiArchive />, title: "Archive", sub: "Left the gym. Stops all reminders", onClick: () => setConfirm("archive") },
+    !archived && member.status === "JOINED" && !member.linkedEmail && { icon: <PiLinkBold />, title: "Send app link on WhatsApp", sub: "They open it, sign in with Google, and see their plan", onClick: sendLink },
+    !archived && member.status === "JOINED" && gym.checkinEnabled && { icon: <PiCheckSquareBold />, title: "Check in now", sub: "Works offline too; syncs later", onClick: checkIn },
+    pending && { icon: <PiUserMinusBold />, title: "Reject request", sub: "Spam or duplicate sign-up", onClick: () => setConfirm("reject") },
+    !archived && !pending && { icon: <PiArchiveBold />, title: "Archive", sub: "Left the gym. Stops all reminders", onClick: () => setConfirm("archive") },
     archived && {
-      icon: <FiRotateCcw />,
+      icon: <PiArrowCounterClockwiseBold />,
       title: "Restore",
       sub: "Bring back to the active list",
       onClick: () =>
@@ -69,7 +69,8 @@ export function MemberMoreSheet({ open, detail, onClose, onDone }: { open: boole
           return "Member restored";
         }),
     },
-    isOwner && { icon: <FiTrash2 />, title: "Delete personal data", sub: "On request. Payments stay for your accounts", onClick: () => setConfirm("anonymise"), danger: true },
+    isOwner && (member.linkedEmail || member.inviteEmail) && { icon: <PiLinkBreakBold />, title: "Unlink app", sub: "Wrong Gmail linked? Remove it, then send a new link", onClick: () => setConfirm("unlink") },
+    isOwner && { icon: <PiTrashBold />, title: "Delete personal data", sub: "On request. Payments stay for your accounts", onClick: () => setConfirm("anonymise"), danger: true },
   ].filter(Boolean) as { icon: ReactNode; title: string; sub: string; onClick: () => void; danger?: boolean }[];
 
   return (
@@ -86,10 +87,10 @@ export function MemberMoreSheet({ open, detail, onClose, onDone }: { open: boole
           <div className="form-grid" style={{ marginBottom: 12 }}>
             <Notice tone="success">Link ready. It works once and expires in 7 days.</Notice>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <ButtonLink href={whatsappLink(member.phone, link.whatsappText)} external variant="primary" icon={<FiMessageCircle />}>
+              <ButtonLink href={whatsappLink(member.phone, link.whatsappText)} external variant="primary" icon={<PiWhatsappLogoBold />}>
                 Open WhatsApp
               </ButtonLink>
-              <Button icon={<FiCopy />} onClick={() => void navigator.clipboard?.writeText(link.url).then(() => onDone("Link copied"))}>
+              <Button icon={<PiCopyBold />} onClick={() => void navigator.clipboard?.writeText(link.url).then(() => onDone("Link copied"))}>
                 Copy link
               </Button>
             </div>
@@ -134,6 +135,20 @@ export function MemberMoreSheet({ open, detail, onClose, onDone }: { open: boole
           await api.post(`${base}/archive`, { reason });
           setConfirm(null);
           onDone("Member archived");
+        }}
+      />
+      <ReasonSheet
+        open={open && confirm === "unlink"}
+        title="Unlink the app?"
+        description={`${member.linkedEmail ?? member.inviteEmail} will no longer open this membership. Send a new app link to the right Gmail after this.`}
+        confirmLabel="Unlink"
+        danger
+        placeholder="Wrong Gmail linked…"
+        onClose={() => setConfirm(null)}
+        onConfirm={async (reason) => {
+          await api.post(`${base}/unlink`, { reason });
+          setConfirm(null);
+          onDone("App unlinked");
         }}
       />
       <ReasonSheet

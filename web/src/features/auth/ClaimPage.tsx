@@ -1,6 +1,6 @@
 /* /claim/:token — links the person's Google account to the membership the desk created for them. */
-import { useState } from "react";
-import { FiLink } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { PiLinkBold } from "react-icons/pi";
 import { api, errorMessage } from "../../lib/api.ts";
 import { navigate } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
@@ -13,12 +13,19 @@ import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
 import { MEMBER_POINTS } from "./authPoints.tsx";
 import { AccountChip } from "../../components/ui/AccountChip.tsx";
+import { CLAIM_BLOCK_MESSAGE, type ClaimInfo } from "../../../../shared/claim.ts";
 
 export function ClaimPage({ token }: { token: string }) {
   const { session, refresh } = useSession();
-  const claim = useApi<{ gymName: string; gymSlug: string; memberName: string }>(`/public/claim/${token}`);
+  const claim = useApi<ClaimInfo>(`/public/claim/${token}`);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const userId = session?.user?.id;
+  const reloadClaim = claim.reload;
+  // Who may use the link depends on who is signed in, so ask again after signing in or switching account.
+  useEffect(() => {
+    reloadClaim();
+  }, [userId, reloadClaim]);
 
   if (claim.loading) {
     return (
@@ -73,10 +80,16 @@ export function ClaimPage({ token }: { token: string }) {
           </p>
         </div>
         <AccountChip afterSignOut={`/claim/${token}`} />
-        {error && <Notice tone="danger">{error}</Notice>}
-        <Button variant="primary" block icon={<FiLink />} loading={busy} onClick={() => void link()}>
-          Link and continue
-        </Button>
+        {claim.data.blocked ? (
+          <Notice tone="warning">{CLAIM_BLOCK_MESSAGE[claim.data.blocked]}</Notice>
+        ) : (
+          <>
+            {error && <Notice tone="danger">{error}</Notice>}
+            <Button variant="primary" block icon={<PiLinkBold />} loading={busy} onClick={() => void link()}>
+              Link and continue
+            </Button>
+          </>
+        )}
       </div>
     </AuthLayout>
   );

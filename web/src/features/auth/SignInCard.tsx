@@ -1,6 +1,6 @@
 /* Google sign-in, with a local-only sign-in for development when DEV_AUTH=1. */
 import { useEffect, useRef, useState } from "react";
-import { FiLock } from "react-icons/fi";
+import { PiLockBold } from "react-icons/pi";
 import { api, errorMessage } from "../../lib/api.ts";
 import { renderGoogleButton } from "../../lib/google.ts";
 import { useSession } from "../../lib/session.tsx";
@@ -50,7 +50,7 @@ export function SignInCard({ title, subtitle }: { title: string; subtitle?: stri
       )}
       {error && <Notice tone="danger">{error}</Notice>}
       <p className="signin__privacy">
-        <FiLock aria-hidden />
+        <PiLockBold aria-hidden />
         We only see your name, email and profile picture. We never read your Gmail.
       </p>
     </div>

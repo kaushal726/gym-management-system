@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
-import { FiAlertCircle, FiCheck } from "react-icons/fi";
+import { PiCheckBold, PiWarningCircleBold } from "react-icons/pi";
 
 interface ToastItem {
   id: number;
@@ -24,7 +24,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toasts" role="status" aria-live="polite">
         {items.map((t) => (
           <div key={t.id} className={`toast${t.tone === "error" ? " toast--error" : ""}`}>
-            {t.tone === "error" ? <FiAlertCircle aria-hidden /> : <FiCheck aria-hidden />}
+            {t.tone === "error" ? <PiWarningCircleBold aria-hidden /> : <PiCheckBold aria-hidden />}
             {t.text}
           </div>
         ))}

@@ -348,6 +348,24 @@ select.input {
 .card--pad {
   padding: var(--space-4);
 }
+/* A card's own heading row: its title on the left, its action (Edit, Add PT…) on the right. */
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.card__body {
+  padding: var(--space-4);
+}
+@media (min-width: 768px) {
+  .card__body {
+    padding: var(--space-5);
+  }
+}
 /* Top strip of a card that holds its tabs or its search and filters, so controls never float on the page. */
 .card__bar {
   display: flex;
@@ -367,18 +385,6 @@ select.input {
   .card--pad {
     padding: var(--space-5);
   }
-}
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.section__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: 32px;
 }
 .section__title {
   font-family: var(--font-heading);
@@ -638,8 +644,8 @@ a.stat:hover {
   color: var(--text-3);
 }
 .state-box__icon svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 .state-box__icon--danger {
   background: var(--danger-soft);
@@ -1355,8 +1361,8 @@ a.stat:hover {
   }
 }
 .quick__icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 .quick__badge {
   position: absolute;
@@ -1403,8 +1409,8 @@ a.stat:hover {
   color: var(--text-3);
 }
 .metric__icon svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 .metric__value {
   font-family: var(--font-display);

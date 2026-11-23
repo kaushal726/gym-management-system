@@ -1,6 +1,6 @@
 /* Follow-ups: every reminder the cron made, as a call list. One tap opens WhatsApp with the message written. */
 import { useState } from "react";
-import { FiCheck, FiMessageCircle, FiPhone, FiPhoneCall } from "react-icons/fi";
+import { PiCheckBold, PiPhoneBold, PiPhoneCallDuotone, PiWhatsappLogoBold } from "react-icons/pi";
 import type { Followup } from "../../../../shared/api.ts";
 import { callLink, formatMobile, whatsappLink } from "../../../../shared/phone.ts";
 import { api, errorMessage } from "../../lib/api.ts";
@@ -72,7 +72,7 @@ export function FollowupsPage() {
         ) : loading && !data ? (
           <ListSkeleton rows={5} />
         ) : data && data.items.length === 0 ? (
-          <EmptyState icon={<FiPhoneCall />} art={view === "open" ? "happy" : undefined} title={view === "open" ? "All caught up" : "Nothing here yet"} text={view === "open" ? "Reminders for expiring plans, dues and leads appear here each morning." : undefined} />
+          <EmptyState icon={<PiPhoneCallDuotone />} art={view === "open" ? "happy" : undefined} title={view === "open" ? "All caught up" : "Nothing here yet"} text={view === "open" ? "Reminders for expiring plans, dues and leads appear here each morning." : undefined} />
         ) : (
           <div className="list">
             {data?.items.map((f) => (
@@ -98,13 +98,13 @@ export function FollowupsPage() {
                 </div>
                 {view === "open" && (
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <ButtonLink href={whatsappLink(f.member.phone, f.message)} external size="sm" icon={<FiMessageCircle />}>
+                    <ButtonLink href={whatsappLink(f.member.phone, f.message)} external size="sm" icon={<PiWhatsappLogoBold />}>
                       WhatsApp
                     </ButtonLink>
-                    <ButtonLink href={callLink(f.member.phone)} external size="sm" icon={<FiPhone />}>
+                    <ButtonLink href={callLink(f.member.phone)} external size="sm" icon={<PiPhoneBold />}>
                       Call
                     </ButtonLink>
-                    <Button size="sm" variant="ghost" icon={<FiCheck />} loading={busyId === f.id} onClick={() => void markDone(f)} aria-label={`Mark ${f.member.name} as contacted`}>
+                    <Button size="sm" variant="ghost" icon={<PiCheckBold />} loading={busyId === f.id} onClick={() => void markDone(f)} aria-label={`Mark ${f.member.name} as contacted`}>
                       Done
                     </Button>
                   </div>

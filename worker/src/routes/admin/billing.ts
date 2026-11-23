@@ -279,19 +279,21 @@ billingRoutes.patch("/subscriptions/:subscriptionId", ownerOnly, async (c) => {
   const siblings = (await subscriptionsOfMember(c.env.DB, sub.memberId, today)).filter((s) => s.kind === sub.kind);
   if (overlapsLive(siblings, startDate, endDate, sub.id)) throw new ApiError(409, "These dates overlap another plan of this member.", "startDate");
 
+  // The price note says why the price differs from the list; keep the original note when the price itself didn't change.
+  const discountNote = (finalPaise: number, listPaise: number) =>
+    finalPaise === listPaise ? null : finalPaise === sub.finalPricePaise && listPaise === sub.listPricePaise ? sub.discountReason : reason;
+  const next = snapshot ?? { planId: sub.planId, planName: sub.planName, durationMonths: sub.durationMonths, durationDays: sub.durationDays, maxFreezeDays: sub.maxFreezeDays, commissionPct: null };
+  // One guarded write: it only applies if no payment arrived since we checked, so dues can never go below zero.
+  const updated = await c.env.DB.prepare(
+    `UPDATE subscriptions SET start_date = ?1, end_date = ?2, final_price_paise = ?3, list_price_paise = ?4, discount_reason = ?5,
+       plan_id = ?6, plan_name = ?7, duration_months = ?8, duration_days = ?9, max_freeze_days = ?10, trainer_commission_pct = COALESCE(?11, trainer_commission_pct)
+     WHERE id = ?12 AND cancelled_at IS NULL
+       AND (SELECT COALESCE(SUM(amount_paise), 0) FROM payments WHERE subscription_id = ?12 AND voided_at IS NULL) <= ?3 + joining_fee_paise`,
+  )
+    .bind(startDate, endDate, finalPricePaise, listPricePaise, discountNote(finalPricePaise, listPricePaise), next.planId, next.planName, next.durationMonths, next.durationDays, next.maxFreezeDays, next.commissionPct, sub.id)
+    .run();
+  if (updated.meta.changes !== 1) throw conflict("This plan changed while you were editing. Please open it again.");
   const statements: D1PreparedStatement[] = [
-    c.env.DB.prepare(
-      `UPDATE subscriptions SET start_date = ?1, end_date = ?2, final_price_paise = ?3, list_price_paise = ?4, discount_reason = ?5 WHERE id = ?6`,
-    ).bind(startDate, endDate, finalPricePaise, listPricePaise, finalPricePaise === listPricePaise ? null : reason, sub.id),
-  ];
-  if (snapshot) {
-    statements.push(
-      c.env.DB.prepare(
-        "UPDATE subscriptions SET plan_id = ?1, plan_name = ?2, duration_months = ?3, duration_days = ?4, max_freeze_days = ?5, trainer_commission_pct = ?6 WHERE id = ?7",
-      ).bind(snapshot.planId, snapshot.planName, snapshot.durationMonths, snapshot.durationDays, snapshot.maxFreezeDays, snapshot.commissionPct, sub.id),
-    );
-  }
-  statements.push(
     auditStatement(c.env.DB, {
       gymId: gym.id,
       actorId: user.id,
@@ -299,10 +301,10 @@ billingRoutes.patch("/subscriptions/:subscriptionId", ownerOnly, async (c) => {
       entity: "subscription",
       entityId: sub.id,
       before: { plan: sub.planName, startDate: sub.startDate, endDate: sub.endDate, finalPricePaise: sub.finalPricePaise },
-      after: { plan: snapshot?.planName ?? sub.planName, startDate, endDate, finalPricePaise },
+      after: { plan: next.planName, startDate, endDate, finalPricePaise },
       reason,
     }),
-  );
+  ];
   await c.env.DB.batch(statements);
   return c.json({ ok: true, endDate });
 });

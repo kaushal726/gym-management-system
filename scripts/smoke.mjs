@@ -372,7 +372,7 @@ const gymCalls = [
   ["GET", "/staff"], ["GET", "/audit"], ["GET", "/reports/collections"], ["GET", "/export/members.csv"], ["GET", "/export/payments.csv"], ["GET", "/checkins"],
   ["POST", "/members"], ["POST", `/members/${raviId}/subscriptions`], ["POST", `/subscriptions/${memberSub}/payments`], ["POST", `/payments/${firstPaymentId}/void`],
   ["POST", `/subscriptions/${memberSub}/cancel`], ["POST", `/subscriptions/${memberSub}/freezes`], ["POST", `/members/${raviId}/reject`], ["POST", `/members/${raviId}/archive`],
-  ["POST", `/members/${raviId}/unarchive`], ["POST", `/members/${raviId}/anonymise`], ["POST", `/members/${raviId}/claim-link`], ["POST", `/members/${raviId}/checkin`],
+  ["POST", `/members/${raviId}/unarchive`], ["POST", `/members/${raviId}/anonymise`], ["POST", `/members/${raviId}/claim-link`], ["POST", `/members/${raviId}/unlink`], ["POST", `/members/${raviId}/checkin`],
   ["POST", `/followups/${fu.id}/contacted`], ["POST", "/plans"], ["POST", "/staff"],
   ["PATCH", `/members/${raviId}`], ["PATCH", `/subscriptions/${memberSub}`], ["PATCH", "/settings"], ["PATCH", `/plans/${monthly}`], ["PATCH", `/staff/${encodeURIComponent(`newowner-${RUN}@gymdesk.test`)}`],
 ];
@@ -480,4 +480,130 @@ r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planI
 ok(r.status === 400 && r.body.field === "startDate", "a frozen plan's dates are locked", r.body);
 r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 360000, startDate: addDays(today, 1) });
 ok(r.status === 200 && r.body.endDate === addDays(editedSub.endDate, 3), "a frozen plan's price can still change and its end date stays", r.body);
+
+// Worst cases: claim links. Staff can't take them, two people can't both win one, a linked member can't be taken over.
+r = await newOwner.post(`${G}/members`, { name: "Claim Target", phone: phone(921) });
+const claimTargetId = r.body.id;
+r = await newOwner.post(`${G}/members/${claimTargetId}/claim-link`, {});
+const raceToken = r.body.url.split("/claim/")[1];
+r = await newOwner.get(`/api/public/claim/${raceToken}`);
+ok(r.status === 200 && r.body.blocked === "STAFF", "the owner opening a member's link is told it is for the member", r.body);
+r = await newOwner.post(`/api/public/claim/${raceToken}`, {});
+ok(r.status === 403, "the owner cannot link a member's record to their own Gmail", r.body);
+r = await editManager.post(`/api/public/claim/${raceToken}`, {});
+ok(r.status === 403, "a manager cannot either", r.body);
+const racerA = await new Client("Racer A").login(`racer-a-${RUN}@gymdesk.test`);
+const racerB = await new Client("Racer B").login(`racer-b-${RUN}@gymdesk.test`);
+const [ra, rb] = await Promise.all([racerA.post(`/api/public/claim/${raceToken}`, {}), racerB.post(`/api/public/claim/${raceToken}`, {})]);
+ok([ra.status, rb.status].sort().join() === "200,410", "two people opening one link at once: exactly one wins", [ra.status, rb.status]);
+const winner = ra.status === 200 ? racerA : racerB;
+const loser = ra.status === 200 ? racerB : racerA;
+r = await newOwner.get(`${G}/members/${claimTargetId}`);
+ok(r.body.member.linkedEmail === (await winner.get("/api/auth/session")).body.user.email, "the member is linked to the winner only");
+r = await loser.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 404, "the other person sees nothing");
+r = await newOwner.post(`${G}/members/${claimTargetId}/claim-link`, {});
+ok(r.status === 409, "no new link for a member who is already linked", r.body);
+r = await editManager.post(`${G}/members/${claimTargetId}/unlink`, { reason: "x" });
+ok(r.status === 403, "only the owner can unlink", r.body);
+r = await newOwner.post(`${G}/members/${claimTargetId}/unlink`, { reason: "" });
+ok(r.status === 400, "unlinking needs a reason", r.body);
+r = await newOwner.post(`${G}/members/${claimTargetId}/unlink`, { reason: "Wrong Gmail" });
+ok(r.status === 200, "the owner unlinks a wrong Gmail", r.body);
+r = await winner.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 404, "the unlinked Gmail loses the member page at once");
+await winner.login((await winner.get("/api/auth/session")).body.user.email);
+r = await newOwner.get(`${G}/members/${claimTargetId}`);
+ok(r.body.member.linkedEmail === null, "signing in again does not link it back");
+r = await newOwner.post(`${G}/members/${claimTargetId}/unlink`, { reason: "again" });
+ok(r.status === 409, "unlinking twice is refused", r.body);
+r = await newOwner.post(`${G}/members/${claimTargetId}/claim-link`, {});
+ok(r.status === 200, "after unlinking, a new link can be sent", r.body);
+r = await newOwner.get(`${G}/audit`);
+ok(r.body.items.some((x) => x.action === "MEMBER_UNLINK" && x.reason === "Wrong Gmail"), "the unlink is in the audit log");
+
+// Worst cases: a member added with a Gmail only links that Gmail.
+const mailEmail = `mailtarget-${RUN}@gymdesk.test`;
+r = await newOwner.post(`${G}/members`, { name: "Mail Target", phone: phone(922), email: mailEmail });
+const mailTargetId = r.body.id;
+r = await newOwner.post(`${G}/members/${mailTargetId}/claim-link`, {});
+const mailToken = r.body.url.split("/claim/")[1];
+const stranger = await new Client("Stranger").login(`stranger-${RUN}@gymdesk.test`);
+r = await stranger.get(`/api/public/claim/${mailToken}`);
+ok(r.status === 200 && r.body.blocked === "OTHER_EMAIL", "a different Gmail is told the link isn't for them", r.body);
+r = await stranger.post(`/api/public/claim/${mailToken}`, {});
+ok(r.status === 403, "and cannot link it", r.body);
+const mailPerson = await new Client("Mail Target").login(mailEmail.toUpperCase());
+r = await mailPerson.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 200 && r.body.member.name === "Mail Target", "the right Gmail (any letter case) is linked on sign-in", r.body);
+r = await mailPerson.post(`/api/public/claim/${mailToken}`, {});
+ok(r.status === 200, "the right Gmail can still use its own link", r.body);
+r = await newOwner.post(`${G}/members/${mailTargetId}/unlink`, { reason: "Changed phone" });
+await mailPerson.login(mailEmail);
+r = await mailPerson.get(`/api/public/me/gyms/${gymId}`);
+ok(r.status === 404, "after unlink the Gmail is cleared too, so sign-in doesn't re-link", r.status);
+
+// Worst cases: same Gmail in several roles.
+r = await stranger.post(`/api/public/gyms/${slug}-new/register`, { ...reg, phone: phone(923) });
+ok(r.status === 201 || r.status === 200, "a person registers from the QR", r.body);
+r = await newOwner.patch(`${G}/members/${mailTargetId}`, { name: "Mail Target", phone: phone(922), email: `stranger-${RUN}@gymdesk.test` });
+ok(r.status === 409 && r.body.field === "email", "a Gmail that already has its own record here can't go on another member", r.body);
+r = await newOwner.patch(`${G}/members/${mailTargetId}`, { name: "Mail Target Renamed", phone: phone(922), email: null });
+ok(r.status === 200, "editing other details of the member still works", r.body);
+r = await newOwner.post(`${G}/members`, { name: "Owner As Member", phone: phone(924), email: `newowner-${RUN}@gymdesk.test` });
+ok(r.status === 201, "the owner may add their own Gmail as a member (they train here too)", r.body);
+r = await newOwner.get("/api/auth/session");
+ok(r.body.staffOf.some((x) => x.gymId === gymId && x.role === "OWNER") && r.body.memberOf.some((x) => x.gymId === gymId), "they stay owner and also see their member page");
+
+// Worst cases: editing a plan.
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: pt, finalPricePaise: 380000, startDate: addDays(today, 1) });
+ok(r.status === 400 && r.body.field === "planId", "a membership can't be switched to a PT plan", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: "not-a-plan", finalPricePaise: 380000, startDate: addDays(today, 1) });
+ok(r.status === 400, "an unknown plan is refused", r.body);
+const otherPlan = (await ownerB.post(`${G2}/plans`, { kind: "MEMBERSHIP", name: "Other gym plan", durationMonths: 1, durationDays: null, pricePaise: 100, maxFreezeDays: 0, trainerCommissionPct: 0 })).body.id;
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: otherPlan, finalPricePaise: 380000, startDate: addDays(today, 1) });
+ok(r.status === 400, "another gym's plan is refused", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: -5, startDate: addDays(today, 1) });
+ok(r.status === 400, "a negative price is refused", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 10_00_00_000_00, startDate: addDays(today, 1) });
+ok(r.status === 400, "an absurd price is refused", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 380000, startDate: "2026-02-31" });
+ok(r.status === 400, "an impossible date is refused", r.body);
+r = await ownerB.patch(`${G2}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 380000, startDate: addDays(today, 1) });
+ok(r.status === 404, "another gym's owner can't edit this plan through their own gym", r.body);
+r = await newOwner.post(`${G}/members`, { name: "Overlap Person", phone: phone(925) });
+const overlapMember = r.body.id;
+r = await newOwner.post(`${G}/members/${overlapMember}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: null });
+const firstSub = r.body.subscriptionId;
+r = await newOwner.post(`${G}/members/${overlapMember}/subscriptions`, { planId: monthly, startDate: addDays(today, 40), finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: null });
+ok(r.status === 201, "a second plan is queued after a gap", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${firstSub}`, { ...editBase, planId: quarterly, finalPricePaise: 400000, startDate: today });
+ok(r.status === 409 && r.body.field === "startDate", "an edit that would overlap the next plan is refused", r.body);
+r = await newOwner.patch(`${G}/subscriptions/${firstSub}`, { ...editBase, planId: monthly, finalPricePaise: 150000, startDate: addDays(today, 61) });
+ok(r.status === 400, "a start more than 60 days ahead is refused", r.body);
+r = await newOwner.post(`${G}/subscriptions/${firstSub}/cancel`, { reason: "Test" });
+r = await newOwner.patch(`${G}/subscriptions/${firstSub}`, { ...editBase });
+ok(r.status === 409, "a cancelled plan can't be edited", r.body);
+
+// Review fixes: a linked member's Gmail can't silently change; archived records don't link; price notes survive date-only edits.
+r = await newOwner.patch(`${G}/members/${nehaId}`, { name: "Neha Gupta", phone: phone(901), email: `someone-else-${RUN}@gymdesk.test` });
+ok(r.status === 409 && r.body.field === "email", "a linked member's Gmail can't be changed without unlinking", r.body);
+r = await newOwner.patch(`${G}/members/${nehaId}`, { name: "Neha G", phone: phone(901), email: nehaEmail });
+ok(r.status === 200, "other edits on a linked member still save", r.body);
+const archivedEmail = `archived-${RUN}@gymdesk.test`;
+r = await newOwner.post(`${G}/members`, { name: "Archived Person", phone: phone(931), email: archivedEmail });
+const archivedId = r.body.id;
+r = await newOwner.post(`${G}/members/${archivedId}/archive`, { reason: "Left" });
+ok(r.status === 200, "the member is archived", r.body);
+const archivedPerson = await new Client("Archived Person").login(archivedEmail);
+r = await archivedPerson.get("/api/auth/session");
+ok(!r.body.memberOf.some((m) => m.gymId === gymId), "an archived record is not linked on sign-in", r.body.memberOf);
+r = await newOwner.post(`${G}/members`, { name: "Discount Person", phone: phone(932) });
+const discountMember = r.body.id;
+r = await newOwner.post(`${G}/members/${discountMember}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 120000, discountReason: "Friend of owner", joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: null });
+const discountSub = r.body.subscriptionId;
+r = await newOwner.patch(`${G}/subscriptions/${discountSub}`, { planId: monthly, startDate: addDays(today, 2), finalPricePaise: 120000, reason: "Wrong date" });
+ok(r.status === 200, "the owner moves only the start date", r.body);
+r = await newOwner.get(`${G}/members/${discountMember}`);
+ok(r.body.subscriptions.find((x) => x.id === discountSub).discountReason === "Friend of owner", "the original price note is kept", r.body.subscriptions);
 console.log(`\nAll ${checks} checks passed.`);

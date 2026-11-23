@@ -1,6 +1,6 @@
 /* Read-only building blocks of the member page. Shared by the member's own view and the desk's member detail. */
 import type { ReactNode } from "react";
-import { FiCalendar, FiCreditCard, FiPauseCircle } from "react-icons/fi";
+import { PiCalendarBlankDuotone, PiPauseCircleBold, PiWalletDuotone } from "react-icons/pi";
 import type { Freeze, Payment, StateSummary, Subscription, Visit } from "../../../../shared/api.ts";
 import { daysBetween } from "../../../../shared/dates.ts";
 import { formatRupees } from "../../../../shared/money.ts";
@@ -49,7 +49,7 @@ function Row({ onSelect, label, children }: { onSelect?: () => void; label: stri
 }
 
 export function PaymentList({ payments, emptyText = "No payments yet.", onSelect }: { payments: Payment[]; emptyText?: string; onSelect?: (p: Payment) => void }) {
-  if (payments.length === 0) return <EmptyState icon={<FiCreditCard />} title="No receipts" text={emptyText} />;
+  if (payments.length === 0) return <EmptyState icon={<PiWalletDuotone />} title="No receipts" text={emptyText} />;
   return (
     <div className="list">
       {payments.map((p) => (
@@ -76,7 +76,7 @@ export function PaymentList({ payments, emptyText = "No payments yet.", onSelect
 }
 
 export function SubscriptionList({ subscriptions, today, onSelect }: { subscriptions: Subscription[]; today: string; onSelect?: (s: Subscription) => void }) {
-  if (subscriptions.length === 0) return <EmptyState icon={<FiCalendar />} title="No plans yet" />;
+  if (subscriptions.length === 0) return <EmptyState icon={<PiCalendarBlankDuotone />} title="No plans yet" />;
   return (
     <div className="list">
       {subscriptions.map((s) => {
@@ -116,7 +116,7 @@ export function FreezeList({ freezes }: { freezes: Freeze[] }) {
     <div className="list">
       {freezes.map((f) => (
         <div className="list-row" key={f.id}>
-          <FiPauseCircle aria-hidden style={{ color: "var(--accent)", flexShrink: 0 }} />
+          <PiPauseCircleBold aria-hidden style={{ color: "var(--accent)", flexShrink: 0 }} />
           <div className="list-row__main">
             <span className="list-row__title">
               {formatDayMonth(f.fromDate)} – {formatDate(f.toDate)}

@@ -1,5 +1,5 @@
 /* /me and /me/:gymId — the member's own page. View only: plan, days left, dues, receipts, history. */
-import { FiMessageCircle, FiPhone, FiUserPlus } from "react-icons/fi";
+import { PiPhoneBold, PiUserPlusDuotone, PiWhatsappLogoBold } from "react-icons/pi";
 import type { MeMembership } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { callLink, formatMobile, whatsappLink } from "../../../../shared/phone.ts";
@@ -21,7 +21,7 @@ export function MemberPage({ gymId }: { gymId?: string }) {
   if (gyms.length === 0) {
     return (
       <NarrowLayout title="My membership">
-        <EmptyState icon={<FiUserPlus />} title="No membership yet" text="Scan the QR code at your gym's desk to join. If the desk added you, ask them for a link on WhatsApp." />
+        <EmptyState icon={<PiUserPlusDuotone />} title="No membership yet" text="Scan the QR code at your gym's desk to join. If the desk added you, ask them for a link on WhatsApp." />
       </NarrowLayout>
     );
   }
@@ -139,40 +139,34 @@ function MemberView({ gymId }: { gymId: string }) {
           <PushCard />
         </div>
         <div className="member-grid__main">
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">Receipts</span>
             </div>
-            <div className="card">
-              <PaymentList payments={data.payments} />
-            </div>
+            <PaymentList payments={data.payments} />
           </section>
 
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">Plans</span>
             </div>
-            <div className="card">
-              <SubscriptionList subscriptions={data.subscriptions} today={data.today} />
-            </div>
+            <SubscriptionList subscriptions={data.subscriptions} today={data.today} />
           </section>
 
           {data.freezes.length > 0 && (
-            <section className="section">
-              <div className="section__head">
+            <section className="card">
+              <div className="card__head">
                 <span className="section__title">Freezes</span>
               </div>
-              <div className="card">
-                <FreezeList freezes={data.freezes} />
-              </div>
+              <FreezeList freezes={data.freezes} />
             </section>
           )}
 
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">My details</span>
             </div>
-            <div className="card card--pad" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="card__body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <dl className="kv">
                 <dt>Name</dt>
                 <dd>{member.name}</dd>
@@ -195,14 +189,19 @@ function MemberView({ gymId }: { gymId: string }) {
           </section>
 
           {gym.phone && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <ButtonLink href={whatsappLink(gym.phone.replace(/\D/g, "").slice(-10), `Hi ${gym.name}, this is ${member.name}.`)} external icon={<FiMessageCircle />}>
-                Message gym
-              </ButtonLink>
-              <ButtonLink href={callLink(gym.phone.replace(/\D/g, "").slice(-10))} external icon={<FiPhone />}>
-                Call gym
-              </ButtonLink>
-            </div>
+            <section className="card">
+              <div className="card__head">
+                <span className="section__title">Contact the gym</span>
+              </div>
+              <div className="card__body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <ButtonLink href={whatsappLink(gym.phone.replace(/\D/g, "").slice(-10), `Hi ${gym.name}, this is ${member.name}.`)} external icon={<PiWhatsappLogoBold />}>
+                  Message gym
+                </ButtonLink>
+                <ButtonLink href={callLink(gym.phone.replace(/\D/g, "").slice(-10))} external icon={<PiPhoneBold />}>
+                  Call gym
+                </ButtonLink>
+              </div>
+            </section>
           )}
         </div>
       </div>

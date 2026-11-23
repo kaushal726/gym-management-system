@@ -2,7 +2,7 @@
  * actions as round tiles, then what needs attention (waiting at the desk, expiring this week) and, for the
  * owner, today's collection. On desktop the same blocks sit in two columns. */
 import { useState } from "react";
-import { FiAlertTriangle, FiCheckCircle, FiCheckSquare, FiClock, FiGrid, FiInbox, FiLayers, FiPhoneCall, FiUsers } from "react-icons/fi";
+import { PiCheckCircleDuotone, PiCheckSquareDuotone, PiClockDuotone, PiCurrencyInrDuotone, PiPhoneCallDuotone, PiQrCodeDuotone, PiStackDuotone, PiTrayDuotone, PiUsersThreeDuotone, PiWarningDuotone } from "react-icons/pi";
 import type { Dashboard } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatDate } from "../../lib/format.ts";
@@ -14,7 +14,6 @@ import { EmptyState, ErrorState, Skeleton } from "../../components/ui/Feedback.t
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 import { CountUp } from "../../components/ui/CountUp.tsx";
 import { Tabs } from "../../components/ui/Tabs.tsx";
-import { RupeeIcon } from "../../components/ui/RupeeIcon.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 import { MemberRow } from "./MemberRow.tsx";
 
@@ -124,14 +123,14 @@ export function TodayPage() {
       </section>
 
       <nav className="quick-row enter-stagger" aria-label="Quick actions">
-        <QuickAction href={`${base}/followups`} label="Follow-ups" icon={<FiPhoneCall />} badge={data?.counts.openFollowups} />
-        <QuickAction href={`${base}/members`} label="Members" icon={<FiUsers />} />
+        <QuickAction href={`${base}/followups`} label="Follow-ups" icon={<PiPhoneCallDuotone />} badge={data?.counts.openFollowups} />
+        <QuickAction href={`${base}/members`} label="Members" icon={<PiUsersThreeDuotone />} />
         {gym.checkinEnabled ? (
-          <QuickAction href={`${base}/checkins`} label="Check-in" icon={<FiCheckSquare />} badge={data?.counts.checkinsToday} />
+          <QuickAction href={`${base}/checkins`} label="Check-in" icon={<PiCheckSquareDuotone />} badge={data?.counts.checkinsToday} />
         ) : (
-          <QuickAction href={`${base}/plans`} label="Plans" icon={<FiLayers />} />
+          <QuickAction href={`${base}/plans`} label="Plans" icon={<PiStackDuotone />} />
         )}
-        <QuickAction href={`${base}/qr`} label="Gym QR" icon={<FiGrid />} />
+        <QuickAction href={`${base}/qr`} label="Gym QR" icon={<PiQrCodeDuotone />} />
       </nav>
 
       <InstallBanner text="Keep the desk one tap away on your phone." />
@@ -162,7 +161,7 @@ export function TodayPage() {
                 <div key={tab}>
                   {tab === "waiting" ? (
                     data.pending.length === 0 ? (
-                      <EmptyState icon={<FiInbox />} title="No one waiting" text="New sign-ups from the QR code show up here." />
+                      <EmptyState icon={<PiTrayDuotone />} title="No one waiting" text="New sign-ups from the QR code show up here." />
                     ) : (
                       <div className="list enter-stagger">
                         {data.pending.map((m) => (
@@ -171,7 +170,7 @@ export function TodayPage() {
                       </div>
                     )
                   ) : data.expiringSoon.length === 0 ? (
-                    <EmptyState icon={<FiCheckCircle />} title="Nothing expiring" text="Members whose plan ends in the next 7 days show up here." />
+                    <EmptyState icon={<PiCheckCircleDuotone />} title="Nothing expiring" text="Members whose plan ends in the next 7 days show up here." />
                   ) : (
                     <div className="list enter-stagger">
                       {data.expiringSoon.map((m) => (
@@ -188,9 +187,9 @@ export function TodayPage() {
               </section>
 
               <div className="metrics">
-                <Metric href={`${base}/members?filter=grace`} label="In grace" value={<CountUp value={data.counts.grace} />} tone={data.counts.grace ? "warning" : undefined} icon={<FiAlertTriangle />} />
-                <Metric href={`${base}/members?filter=expired`} label="Expired" value={<CountUp value={data.counts.expired} />} icon={<FiClock />} />
-                <Metric href={`${base}/members?filter=dues`} label="With dues" value={<CountUp value={data.counts.withDues} />} tone={data.counts.withDues ? "warning" : undefined} icon={<RupeeIcon />} />
+                <Metric href={`${base}/members?filter=grace`} label="In grace" value={<CountUp value={data.counts.grace} />} tone={data.counts.grace ? "warning" : undefined} icon={<PiWarningDuotone />} />
+                <Metric href={`${base}/members?filter=expired`} label="Expired" value={<CountUp value={data.counts.expired} />} icon={<PiClockDuotone />} />
+                <Metric href={`${base}/members?filter=dues`} label="With dues" value={<CountUp value={data.counts.withDues} />} tone={data.counts.withDues ? "warning" : undefined} icon={<PiCurrencyInrDuotone />} />
               </div>
             </div>
 

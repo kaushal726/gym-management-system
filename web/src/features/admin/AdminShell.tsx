@@ -1,6 +1,6 @@
 /* The staff app frame: sidebar on desktop; top bar, bottom nav and a "More" sheet on phones. */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { FiBarChart2, FiCheckSquare, FiHome, FiLayers, FiLogOut, FiGrid, FiMenu, FiPhoneCall, FiPlus, FiRefreshCw, FiRepeat, FiSettings, FiShield, FiUserCheck, FiUsers } from "react-icons/fi";
+import { PiArrowsClockwiseBold, PiBuildingsBold, PiChartBarBold, PiCheckSquareBold, PiGearSixBold, PiHouseBold, PiListBold, PiPhoneCallBold, PiPlusBold, PiQrCodeBold, PiRepeatBold, PiShieldCheckBold, PiSignOutBold, PiStackBold, PiUserCheckBold, PiUsersThreeBold } from "react-icons/pi";
 import type { GymSettings } from "../../../../shared/api.ts";
 import type { StaffRole } from "../../../../shared/constants.ts";
 import { syncCheckins } from "../../lib/offlineCheckins.ts";
@@ -47,16 +47,16 @@ interface NavItem {
 
 function navItems(base: string): NavItem[] {
   return [
-    { href: base, label: "Today", icon: <FiHome />, group: "main" },
-    { href: `${base}/followups`, label: "Follow-ups", icon: <FiPhoneCall />, group: "main" },
-    { href: `${base}/members`, label: "Members", icon: <FiUsers />, group: "main" },
-    { href: `${base}/checkins`, label: "Check-ins", icon: <FiCheckSquare />, needsCheckin: true, group: "main" },
-    { href: `${base}/plans`, label: "Plans", icon: <FiLayers />, group: "manage" },
-    { href: `${base}/qr`, label: "Gym QR", icon: <FiGrid />, group: "manage" },
-    { href: `${base}/reports`, label: "Reports", icon: <FiBarChart2 />, ownerOnly: true, group: "manage" },
-    { href: `${base}/staff`, label: "Staff", icon: <FiUserCheck />, ownerOnly: true, group: "manage" },
-    { href: `${base}/settings`, label: "Settings", icon: <FiSettings />, group: "manage" },
-    { href: `${base}/audit`, label: "Audit log", icon: <FiShield />, ownerOnly: true, group: "manage" },
+    { href: base, label: "Today", icon: <PiHouseBold />, group: "main" },
+    { href: `${base}/followups`, label: "Follow-ups", icon: <PiPhoneCallBold />, group: "main" },
+    { href: `${base}/members`, label: "Members", icon: <PiUsersThreeBold />, group: "main" },
+    { href: `${base}/checkins`, label: "Check-ins", icon: <PiCheckSquareBold />, needsCheckin: true, group: "main" },
+    { href: `${base}/plans`, label: "Plans", icon: <PiStackBold />, group: "manage" },
+    { href: `${base}/qr`, label: "Gym QR", icon: <PiQrCodeBold />, group: "manage" },
+    { href: `${base}/reports`, label: "Reports", icon: <PiChartBarBold />, ownerOnly: true, group: "manage" },
+    { href: `${base}/staff`, label: "Staff", icon: <PiUserCheckBold />, ownerOnly: true, group: "manage" },
+    { href: `${base}/settings`, label: "Settings", icon: <PiGearSixBold />, group: "manage" },
+    { href: `${base}/audit`, label: "Audit log", icon: <PiShieldCheckBold />, ownerOnly: true, group: "manage" },
   ];
 }
 
@@ -84,7 +84,7 @@ function otherGymButtons(staffOf: StaffGym[], gymId: string) {
   return (
     <>
       {others.map((g) => (
-        <ButtonLink key={g.gymId} href={`/admin/${g.gymId}`} variant="primary" icon={<FiRepeat />}>
+        <ButtonLink key={g.gymId} href={`/admin/${g.gymId}`} variant="primary" icon={<PiRepeatBold />}>
           Open {g.gymName}
         </ButtonLink>
       ))}
@@ -119,7 +119,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
         text="This Gmail isn't added to this gym. Ask the gym owner to add it under Staff, or sign in with the Gmail they added."
         actions={
           session?.isPlatformAdmin ? (
-            <ButtonLink href="/platform" variant="primary" icon={<FiGrid />}>
+            <ButtonLink href="/platform" variant="primary" icon={<PiBuildingsBold />}>
               Open platform console
             </ButtonLink>
           ) : (
@@ -147,7 +147,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
         title="Couldn't open the gym"
         text={gym.error.message}
         actions={
-          <Button variant="primary" icon={<FiRefreshCw />} onClick={gym.reload}>
+          <Button variant="primary" icon={<PiArrowsClockwiseBold />} onClick={gym.reload}>
             Try again
           </Button>
         }
@@ -184,7 +184,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
               <div className="brand__sub">{ROLE_LABEL[staff.role]}</div>
             </div>
           </div>
-          <ButtonLink href={`${base}/members?add=1`} variant="accent" block icon={<FiPlus />}>
+          <ButtonLink href={`${base}/members?add=1`} variant="accent" block icon={<PiPlusBold />}>
             Add member
           </ButtonLink>
           <nav className="side-nav" style={{ marginTop: 16 }}>
@@ -210,7 +210,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
                 <span className="side-nav__group">Other gyms</span>
                 {otherGyms.map((g) => (
                   <Link key={g.gymId} href={`/admin/${g.gymId}`} className="side-nav__item">
-                    <FiRepeat />
+                    <PiRepeatBold />
                     {g.gymName}
                   </Link>
                 ))}
@@ -227,7 +227,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
                 {session!.user!.email}
               </div>
             </div>
-            <IconButton label="Sign out" icon={<FiLogOut />} onClick={() => void signOut().then(() => navigate("/"))} />
+            <IconButton label="Sign out" icon={<PiSignOutBold />} onClick={() => void signOut().then(() => navigate("/"))} />
           </div>
         </aside>
 
@@ -251,7 +251,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
               </Link>
             ))}
             <button type="button" className="bottom-nav__item" onClick={() => setMoreOpen(true)} aria-current={current && !bottom.includes(current) ? "page" : undefined}>
-              <FiMenu />
+              <PiListBold />
               More
             </button>
           </nav>
@@ -270,14 +270,14 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
           ))}
           {otherGyms.map((g) => (
             <Link key={g.gymId} href={`/admin/${g.gymId}`} className="list-row" onClick={() => setMoreOpen(false)}>
-              <FiRepeat />
+              <PiRepeatBold />
               <span className="list-row__main">
                 <span className="list-row__title">Switch to {g.gymName}</span>
               </span>
             </Link>
           ))}
           <button type="button" className="list-row" onClick={() => void signOut().then(() => navigate("/"))}>
-            <FiLogOut />
+            <PiSignOutBold />
             <span className="list-row__main">
               <span className="list-row__title">Sign out</span>
               <span className="list-row__sub">{session!.user!.email}</span>

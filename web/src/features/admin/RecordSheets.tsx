@@ -1,6 +1,6 @@
 /* Tapping a plan or a payment row opens its details and the actions allowed on it. */
 import { useState } from "react";
-import { FiCreditCard, FiEdit2, FiPauseCircle, FiXCircle } from "react-icons/fi";
+import { PiPauseCircleBold, PiPencilSimpleBold, PiWalletBold, PiXCircleBold } from "react-icons/pi";
 import type { Payment, Subscription } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { api } from "../../lib/api.ts";
@@ -87,22 +87,22 @@ export function SubscriptionDetailSheet({
         {live && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {sub.duePaise > 0 && (
-              <Button variant="primary" icon={<FiCreditCard />} onClick={() => onAction("pay", sub)}>
+              <Button variant="primary" icon={<PiWalletBold />} onClick={() => onAction("pay", sub)}>
                 Take payment
               </Button>
             )}
             {(running || sub.startDate > today) && (
-              <Button icon={<FiPauseCircle />} onClick={() => onAction("freeze", sub)}>
+              <Button icon={<PiPauseCircleBold />} onClick={() => onAction("freeze", sub)}>
                 Freeze
               </Button>
             )}
             {isOwner && (
-              <Button icon={<FiEdit2 />} onClick={() => onAction("editPlan", sub)}>
+              <Button icon={<PiPencilSimpleBold />} onClick={() => onAction("editPlan", sub)}>
                 Edit plan
               </Button>
             )}
             {isOwner && (
-              <Button variant="danger-ghost" icon={<FiXCircle />} onClick={() => onAction("cancel", sub)}>
+              <Button variant="danger-ghost" icon={<PiXCircleBold />} onClick={() => onAction("cancel", sub)}>
                 Cancel plan
               </Button>
             )}
@@ -147,7 +147,7 @@ export function PaymentDetailSheet({ open, payment, gymId, isOwner, onClose, onD
             </Notice>
           )}
           {!payment.voidedAt && !refund && isOwner && (
-            <Button variant="danger-ghost" icon={<FiXCircle />} onClick={() => setVoiding(true)}>
+            <Button variant="danger-ghost" icon={<PiXCircleBold />} onClick={() => setVoiding(true)}>
               Void this entry
             </Button>
           )}

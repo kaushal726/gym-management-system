@@ -1,6 +1,6 @@
 /* Members: filter chips (same rules as the dashboard counts), search by name or phone, add a walk-in. */
 import { useEffect, useState } from "react";
-import { FiPlus, FiSearch, FiUsers } from "react-icons/fi";
+import { PiMagnifyingGlassBold, PiPlusBold, PiUsersThreeDuotone } from "react-icons/pi";
 import type { MemberFilter, MemberListItem } from "../../../../shared/api.ts";
 import { MEMBER_FILTERS } from "../../../../shared/api.ts";
 import { FILTER_LABEL } from "../../../../shared/filters.ts";
@@ -42,7 +42,7 @@ export function MembersPage() {
           <p>{data ? `${data.counts.all} people` : " "}</p>
         </div>
         <div className="page-head__actions hide-mobile">
-          <Button variant="primary" icon={<FiPlus />} onClick={() => navigate(`${base}/members?add=1`)}>
+          <Button variant="primary" icon={<PiPlusBold />} onClick={() => navigate(`${base}/members?add=1`)}>
             Add member
           </Button>
         </div>
@@ -51,7 +51,7 @@ export function MembersPage() {
       <div className="card">
         <div className="card__bar card__bar--tools">
           <div className="input-affix">
-            <FiSearch className="input-affix__prefix" aria-hidden />
+            <PiMagnifyingGlassBold className="input-affix__prefix" aria-hidden />
             <input className="input" type="search" placeholder="Search name or mobile" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search members" />
           </div>
           <div className="chips" role="toolbar" aria-label="Filter members">
@@ -69,12 +69,12 @@ export function MembersPage() {
           <ListSkeleton rows={6} />
         ) : data && data.items.length === 0 ? (
           <EmptyState
-            icon={<FiUsers />}
+            icon={<PiUsersThreeDuotone />}
             title={debounced ? "No match" : filter === "all" ? "No members yet" : `No ${FILTER_LABEL[filter].toLowerCase()} members`}
             text={debounced ? "Try another name or number." : filter === "all" ? "Add your first member, or put the QR code on the wall so people can sign up." : undefined}
             action={
               filter === "all" && !debounced ? (
-                <Button variant="primary" icon={<FiPlus />} onClick={() => navigate(`${base}/members?add=1`)}>
+                <Button variant="primary" icon={<PiPlusBold />} onClick={() => navigate(`${base}/members?add=1`)}>
                   Add member
                 </Button>
               ) : undefined

@@ -1,6 +1,6 @@
 /* Gym QR: the join code inside the app, with one-tap download (a ready PNG), share, copy link and print. */
 import { useState } from "react";
-import { FiCopy, FiDownload, FiPrinter, FiShare2 } from "react-icons/fi";
+import { PiCopyBold, PiDownloadSimpleBold, PiPrinterBold, PiShareNetworkBold } from "react-icons/pi";
 import { errorMessage } from "../../lib/api.ts";
 import { buildQrPoster, downloadBlob } from "../../lib/qrPoster.ts";
 import { Button, ButtonLink } from "../../components/ui/Button.tsx";
@@ -74,18 +74,18 @@ export function GymQrPage() {
           <span className="qr-card__url">{joinUrl}</span>
         </div>
         <div className="qr-card__actions">
-          <Button variant="primary" block icon={<FiDownload />} loading={busy === "download"} disabled={busy !== null} onClick={() => void download()}>
+          <Button variant="primary" block icon={<PiDownloadSimpleBold />} loading={busy === "download"} disabled={busy !== null} onClick={() => void download()}>
             Download QR
           </Button>
           {canShareFiles() && (
-            <Button variant="secondary" block icon={<FiShare2 />} loading={busy === "share"} disabled={busy !== null} onClick={() => void share()}>
+            <Button variant="secondary" block icon={<PiShareNetworkBold />} loading={busy === "share"} disabled={busy !== null} onClick={() => void share()}>
               Share
             </Button>
           )}
-          <Button variant="secondary" block icon={<FiCopy />} onClick={() => void copy()}>
+          <Button variant="secondary" block icon={<PiCopyBold />} onClick={() => void copy()}>
             Copy link
           </Button>
-          <ButtonLink href={`/poster/${gym.slug}`} variant="secondary" block icon={<FiPrinter />}>
+          <ButtonLink href={`/poster/${gym.slug}`} variant="secondary" block icon={<PiPrinterBold />}>
             Print poster
           </ButtonLink>
         </div>

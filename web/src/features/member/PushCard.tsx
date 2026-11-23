@@ -1,6 +1,6 @@
 /* Lets a person turn on reminders on this device, with the iPhone "Add to Home Screen" step explained. */
 import { useEffect, useState } from "react";
-import { FiBell, FiBellOff, FiShare } from "react-icons/fi";
+import { PiBellBold, PiBellSlashBold, PiExportBold } from "react-icons/pi";
 import { errorMessage } from "../../lib/api.ts";
 import { pushStatus, turnOffPush, turnOnPush, type PushStatus } from "../../lib/push.ts";
 import { useSession } from "../../lib/session.tsx";
@@ -34,7 +34,7 @@ export function PushCard({ compact = false }: { compact?: boolean }) {
     <div className="card card--pad" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span className="state-box__icon" style={{ width: 40, height: 40 }} aria-hidden>
-          {status === "on" ? <FiBell /> : <FiBellOff />}
+          {status === "on" ? <PiBellBold /> : <PiBellSlashBold />}
         </span>
         <div style={{ flex: 1 }}>
           <h3>{status === "on" ? "Reminders are on" : "Get reminders"}</h3>
@@ -48,7 +48,7 @@ export function PushCard({ compact = false }: { compact?: boolean }) {
       </div>
       {status === "needs-install" && (
         <Notice tone="info">
-          On iPhone, tap <FiShare aria-label="Share" style={{ verticalAlign: "-2px" }} /> Share, then <strong>Add to Home Screen</strong>. Open the app from there to turn on reminders.
+          On iPhone, tap <PiExportBold aria-label="Share" style={{ verticalAlign: "-2px" }} /> Share, then <strong>Add to Home Screen</strong>. Open the app from there to turn on reminders.
         </Notice>
       )}
       {status === "denied" && <Notice tone="warning">Notifications are blocked for this site. Allow them in your browser settings to get reminders.</Notice>}

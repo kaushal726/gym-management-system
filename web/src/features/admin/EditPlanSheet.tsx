@@ -78,7 +78,7 @@ export function EditPlanSheet({ open, gymId, sub, onClose, onDone }: Props) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" loading={busy} disabled={!preview || "problem" in preview} onClick={() => void save()}>
+          <Button variant="primary" loading={busy} disabled={!preview || "problem" in preview || !reason.trim()} onClick={() => void save()}>
             Save changes
           </Button>
         </>
