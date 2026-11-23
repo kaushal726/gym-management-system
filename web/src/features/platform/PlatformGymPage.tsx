@@ -1,7 +1,7 @@
 /* /platform/gyms/:id — one gym from the platform side: plan and valid-till, pause/resume, archive, owner,
  * details, team and health numbers. Never the gym's members' money. */
 import { useState } from "react";
-import { FiArchive, FiArrowLeft, FiCreditCard, FiEdit2, FiExternalLink, FiPause, FiPlay, FiRotateCcw, FiUserCheck } from "react-icons/fi";
+import { PiArchiveBold, PiArrowCounterClockwiseBold, PiArrowLeftBold, PiArrowSquareOutBold, PiPauseBold, PiPencilSimpleBold, PiPlayBold, PiUserCheckBold, PiWalletBold, PiWalletDuotone } from "react-icons/pi";
 import type { PlatformGymDetail } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { GYM_ACCESS_LABEL, SAAS_GRACE_DAYS } from "../../../../shared/saas.ts";
@@ -41,7 +41,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
 
   const back = (
     <Link href="/platform" className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, minHeight: 32 }}>
-      <FiArrowLeft aria-hidden /> All gyms
+      <PiArrowLeftBold aria-hidden /> All gyms
     </Link>
   );
   if (error && !data) {
@@ -89,33 +89,33 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         {gym.ownerEmail === session?.user?.email && <Notice tone="warning">The owner is your platform email. Change it to the gym owner's own Gmail.</Notice>}
         <div className="detail-actions">
           <div className="detail-actions__main">
-            <Button variant="primary" icon={<FiCreditCard />} onClick={() => setOpen("billing")}>
+            <Button variant="primary" icon={<PiWalletBold />} onClick={() => setOpen("billing")}>
               Record payment
             </Button>
             {gym.status === "ACTIVE" && (
-              <Button icon={<FiPause />} onClick={() => setOpen("pause")}>
+              <Button icon={<PiPauseBold />} onClick={() => setOpen("pause")}>
                 Pause
               </Button>
             )}
             {gym.status === "PAUSED" && (
-              <Button icon={<FiPlay />} onClick={() => setOpen("resume")}>
+              <Button icon={<PiPlayBold />} onClick={() => setOpen("resume")}>
                 Resume
               </Button>
             )}
           </div>
           <div className="detail-actions__quick">
-            <Button icon={<FiUserCheck />} onClick={() => setOpen("owner")}>
+            <Button icon={<PiUserCheckBold />} onClick={() => setOpen("owner")}>
               Owner
             </Button>
-            <Button icon={<FiEdit2 />} onClick={() => setOpen("details")}>
+            <Button icon={<PiPencilSimpleBold />} onClick={() => setOpen("details")}>
               Edit
             </Button>
             {gym.status === "ARCHIVED" ? (
-              <Button icon={<FiRotateCcw />} onClick={() => setOpen("restore")}>
+              <Button icon={<PiArrowCounterClockwiseBold />} onClick={() => setOpen("restore")}>
                 Restore
               </Button>
             ) : (
-              <Button variant="danger-ghost" icon={<FiArchive />} onClick={() => setOpen("archive")}>
+              <Button variant="danger-ghost" icon={<PiArchiveBold />} onClick={() => setOpen("archive")}>
                 Archive
               </Button>
             )}
@@ -147,11 +147,11 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
 
       <div className="two-col">
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">GymDesk plan</span>
             </div>
-            <div className="card card--pad">
+            <div className="card__body">
               <dl className="kv">
                 <dt>Plan</dt>
                 <dd>{gym.saasPlanName ?? "—"}</dd>
@@ -162,40 +162,38 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
               </dl>
             </div>
           </section>
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">Payments to GymDesk</span>
             </div>
-            <div className="card">
-              {billing.length === 0 ? (
-                <EmptyState icon={<FiCreditCard />} title="No payments yet" text="Record what the gym pays you to move its valid-till date." />
-              ) : (
-                <div className="list">
-                  {billing.map((b) => (
-                    <div className="list-row" key={b.id}>
-                      <span className="list-row__main">
-                        <span className="list-row__title">{b.planName}</span>
-                        <span className="list-row__sub">
-                          {formatDate(b.paidOn)} · {b.mode} · till {formatDate(b.validTillAfter)}
-                        </span>
-                        {b.note && <span className="list-row__sub">{b.note}</span>}
+            {billing.length === 0 ? (
+              <EmptyState icon={<PiWalletDuotone />} title="No payments yet" text="Record what the gym pays you to move its valid-till date." />
+            ) : (
+              <div className="list">
+                {billing.map((b) => (
+                  <div className="list-row" key={b.id}>
+                    <span className="list-row__main">
+                      <span className="list-row__title">{b.planName}</span>
+                      <span className="list-row__sub">
+                        {formatDate(b.paidOn)} · {b.mode} · till {formatDate(b.validTillAfter)}
                       </span>
-                      <span className="tabular" style={{ fontWeight: 700 }}>
-                        {formatRupees(b.amountPaise)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                      {b.note && <span className="list-row__sub">{b.note}</span>}
+                    </span>
+                    <span className="tabular" style={{ fontWeight: 700 }}>
+                      {formatRupees(b.amountPaise)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
 
-        <section className="section">
-          <div className="section__head">
+        <section className="card">
+          <div className="card__head">
             <span className="section__title">Owner and staff</span>
           </div>
-          <div className="card list">
+          <div className="list">
             {staff.map((s) => (
               <div className="list-row" key={s.email} style={{ opacity: s.active ? 1 : 0.55 }}>
                 <span className="list-row__main">
@@ -210,9 +208,11 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
               </div>
             ))}
           </div>
-          <ButtonLink href={`/poster/${gym.slug}`} external icon={<FiExternalLink />}>
-            Gym QR poster
-          </ButtonLink>
+          <div className="card__body">
+            <ButtonLink href={`/poster/${gym.slug}`} external icon={<PiArrowSquareOutBold />}>
+              Gym QR poster
+            </ButtonLink>
+          </div>
         </section>
       </div>
 

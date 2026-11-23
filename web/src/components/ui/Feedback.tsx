@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { FiAlertCircle, FiAlertTriangle, FiCheckCircle, FiInfo, FiRefreshCw } from "react-icons/fi";
+import { PiArrowsClockwiseBold, PiCheckCircleBold, PiInfoBold, PiWarningBold, PiWarningCircleBold } from "react-icons/pi";
 import type { MembershipState } from "../../../../shared/membership.ts";
 import { initials } from "../../lib/format.ts";
 import { STATE_LABEL, STATE_TONE, type Tone } from "../../lib/states.ts";
@@ -49,12 +49,12 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
   return (
     <div className="state-box enter" role="alert">
       <span className="state-box__icon state-box__icon--danger" aria-hidden>
-        <FiAlertCircle />
+        <PiWarningCircleBold />
       </span>
       <h3>Couldn't load this</h3>
       <p>{message ?? "Something went wrong. Please try again."}</p>
       {onRetry && (
-        <Button size="sm" icon={<FiRefreshCw />} onClick={onRetry}>
+        <Button size="sm" icon={<PiArrowsClockwiseBold />} onClick={onRetry}>
           Try again
         </Button>
       )}
@@ -62,7 +62,7 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
   );
 }
 
-const NOTICE_ICON = { info: FiInfo, warning: FiAlertTriangle, danger: FiAlertCircle, success: FiCheckCircle } as const;
+const NOTICE_ICON = { info: PiInfoBold, warning: PiWarningBold, danger: PiWarningCircleBold, success: PiCheckCircleBold } as const;
 
 export function Notice({ tone = "info", children }: { tone?: keyof typeof NOTICE_ICON; children: ReactNode }) {
   const Icon = NOTICE_ICON[tone];

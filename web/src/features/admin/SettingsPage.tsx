@@ -1,6 +1,6 @@
 /* Gym settings (owner): contact, UPI, grace days, joining fee, reminder time, check-in, and the QR poster. */
 import { useEffect, useState } from "react";
-import { FiDownload, FiMapPin } from "react-icons/fi";
+import { PiDownloadSimpleBold, PiMapPinBold } from "react-icons/pi";
 import type { GymSettings } from "../../../../shared/api.ts";
 import { DEFAULT_CHECKIN_RADIUS_M } from "../../../../shared/constants.ts";
 import { paiseToInput, rupeesToPaise } from "../../../../shared/money.ts";
@@ -127,7 +127,7 @@ export function SettingsPage() {
                 <Switch checked={form.useLocation} onChange={(v) => set("useLocation", v)} label="Must be at the gym" hint="Stops check-ins from a photo of the QR at home." />
                 {form.useLocation && (
                   <div className="form-grid form-grid--2">
-                    <Button icon={<FiMapPin />} loading={locating} onClick={useHere}>
+                    <Button icon={<PiMapPinBold />} loading={locating} onClick={useHere}>
                       {form.lat != null ? "Location saved · update" : "Use my current location"}
                     </Button>
                     <TextField label="Radius (metres)" type="number" inputMode="numeric" min={30} max={5000} value={form.radius} onChange={(e) => set("radius", e.target.value)} error={fieldError("checkinRadiusM")} />
@@ -149,7 +149,7 @@ export function SettingsPage() {
             <p className="muted" style={{ fontSize: 13 }}>
               New members sign up with it{gym.checkinEnabled ? ", and members check in with it" : ""}. Put it at the desk and the entrance.
             </p>
-            <ButtonLink href={`${base}/qr`} icon={<FiDownload />}>
+            <ButtonLink href={`${base}/qr`} icon={<PiDownloadSimpleBold />}>
               Download or print QR
             </ButtonLink>
           </section>

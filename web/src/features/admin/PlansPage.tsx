@@ -1,6 +1,6 @@
 /* Plans the gym sells: memberships and personal-training packages. A price change never touches existing plans. */
 import { useEffect, useState } from "react";
-import { FiEdit2, FiLayers, FiPlus } from "react-icons/fi";
+import { PiPencilSimpleBold, PiPlusBold, PiStackDuotone } from "react-icons/pi";
 import type { Plan, PlanInput } from "../../../../shared/api.ts";
 import type { PlanKind } from "../../../../shared/constants.ts";
 import { formatRupees, paiseToInput, rupeesToPaise } from "../../../../shared/money.ts";
@@ -136,7 +136,7 @@ export function PlansPage() {
           <p>What you sell at the desk.</p>
         </div>
         {isOwner && (
-          <Button variant="primary" icon={<FiPlus />} onClick={() => setEditing("new")}>
+          <Button variant="primary" icon={<PiPlusBold />} onClick={() => setEditing("new")}>
             New plan
           </Button>
         )}
@@ -148,12 +148,12 @@ export function PlansPage() {
           <ListSkeleton rows={3} />
         ) : data && data.items.length === 0 ? (
           <EmptyState
-            icon={<FiLayers />}
+            icon={<PiStackDuotone />}
             title="No plans yet"
             text="Add your monthly, quarterly and yearly plans to start activating members."
             action={
               isOwner ? (
-                <Button variant="primary" icon={<FiPlus />} onClick={() => setEditing("new")}>
+                <Button variant="primary" icon={<PiPlusBold />} onClick={() => setEditing("new")}>
                   New plan
                 </Button>
               ) : undefined
@@ -180,7 +180,7 @@ export function PlansPage() {
                     {!p.active && <Badge>Hidden</Badge>}
                   </span>
                 </span>
-                {isOwner && <IconButton label={`Edit ${p.name}`} icon={<FiEdit2 />} onClick={() => setEditing(p)} />}
+                {isOwner && <IconButton label={`Edit ${p.name}`} icon={<PiPencilSimpleBold />} onClick={() => setEditing(p)} />}
               </div>
             ))}
           </div>

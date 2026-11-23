@@ -63,10 +63,13 @@ async function assertEmailFree(db: D1Database, gymId: string, address: string, e
   if (taken) throw new ApiError(409, EMAIL_TAKEN, "email");
 }
 
-/** The account that already signed in with this email, if any, so the member is linked straight away. */
-async function userIdForEmail(db: D1Database, address: string | null): Promise<string | null> {
+/** The account that already signed in with this email, so the member is linked straight away; null if that account is already a member here. */
+async function linkableUserId(db: D1Database, gymId: string, address: string | null): Promise<string | null> {
   if (!address) return null;
-  const row = await db.prepare("SELECT id FROM users WHERE lower(email) = ?1").bind(address).first<{ id: string }>();
+  const row = await db
+    .prepare("SELECT u.id FROM users u WHERE lower(u.email) = ?1 AND NOT EXISTS (SELECT 1 FROM members m WHERE m.gym_id = ?2 AND m.user_id = u.id)")
+    .bind(address, gymId)
+    .first<{ id: string }>();
   return row?.id ?? null;
 }
 
@@ -89,7 +92,7 @@ memberRoutes.post("/members", async (c) => {
   const taken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2").bind(gym.id, input.phone).first();
   if (taken) throw new ApiError(409, "This phone number is already registered at this gym.", "phone");
   if (input.email) await assertEmailFree(c.env.DB, gym.id, input.email, null);
-  const linkUserId = await userIdForEmail(c.env.DB, input.email);
+  const linkUserId = await linkableUserId(c.env.DB, gym.id, input.email);
   const id = newId();
   await c.env.DB.batch([
     c.env.DB.prepare(
@@ -161,9 +164,11 @@ memberRoutes.patch("/members/:memberId", async (c) => {
       ),
     );
   }
+  // A linked app keeps its Gmail; changing it would look saved but never work, so unlink first.
+  if (member.user_id && input.email !== member.invite_email) throw new ApiError(409, "This member's app is linked. Unlink it first to change the Gmail.", "email");
   if (input.email && input.email !== member.invite_email) await assertEmailFree(c.env.DB, gym.id, input.email, member.id);
   // A member already linked to a Google account keeps that link; otherwise link now if this email has signed in before.
-  const linkUserId = member.user_id ?? (await userIdForEmail(c.env.DB, input.email));
+  const linkUserId = member.user_id ?? (await linkableUserId(c.env.DB, gym.id, input.email));
   const before = toMemberProfile(member);
   statements.push(
     c.env.DB.prepare(
@@ -237,10 +242,26 @@ memberRoutes.post("/members/:memberId/anonymise", ownerOnly, async (c) => {
   return c.json({ ok: true });
 });
 
+/** Owner undoes a wrong app link. The Gmail on the record goes too, so the next sign-in doesn't link it again. */
+memberRoutes.post("/members/:memberId/unlink", ownerOnly, async (c) => {
+  const { gym } = currentStaff(c);
+  const user = currentUser(c);
+  const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
+  const reason = text(asBody(await c.req.json()), "reason", { max: 200 });
+  if (!member.user_id && !member.invite_email) throw conflict("This member has no app link.");
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE members SET user_id = NULL, invite_email = NULL WHERE id = ?1").bind(member.id),
+    c.env.DB.prepare("UPDATE claim_tokens SET used_at = ?1 WHERE member_id = ?2 AND used_at IS NULL").bind(nowIso(), member.id),
+    auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "MEMBER_UNLINK", entity: "member", entityId: member.id, before: { email: member.linked_email ?? null, inviteEmail: member.invite_email }, reason }),
+  ]);
+  return c.json({ ok: true });
+});
+
 memberRoutes.post("/members/:memberId/claim-link", async (c) => {
   const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
+  if (member.user_id) throw conflict("This member's app is already linked. Unlink it first to link another Gmail.");
   const token = randomToken();
   const expiresAt = new Date(Date.now() + CLAIM_LINK_DAYS * DAY_MS).toISOString();
   await c.env.DB.batch([

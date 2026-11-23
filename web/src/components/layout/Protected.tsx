@@ -2,7 +2,7 @@
  * they get the sign-in screen or a "not for you" screen, and the page's data is never requested.
  * The Worker checks every API call again on its own, so this is about a clean experience, not the only lock. */
 import type { ReactNode } from "react";
-import { FiGrid } from "react-icons/fi";
+import { PiBuildingsBold } from "react-icons/pi";
 import { useSession } from "../../lib/session.tsx";
 import { GYM_POINTS, MEMBER_POINTS } from "../../features/auth/authPoints.tsx";
 import { SignInCard } from "../../features/auth/SignInCard.tsx";
@@ -49,7 +49,7 @@ export function Protected({ guard, children }: { guard: Guard; children: ReactNo
         text="Please contact GymDesk to get your gym onboarded."
         actions={
           session.isPlatformAdmin ? (
-            <ButtonLink href="/platform" variant="primary" icon={<FiGrid />}>
+            <ButtonLink href="/platform" variant="primary" icon={<PiBuildingsBold />}>
               Open platform console
             </ButtonLink>
           ) : undefined

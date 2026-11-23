@@ -1,7 +1,7 @@
 /* /platform — the SaaS console. Every gym with its health (never its money), filters by plan state,
  * and onboarding a new gym with its one owner. */
 import { useState } from "react";
-import { FiAlertTriangle, FiGrid, FiPlus } from "react-icons/fi";
+import { PiBuildingsDuotone, PiPlusBold, PiWarningBold } from "react-icons/pi";
 import type { PlatformGym } from "../../../../shared/api.ts";
 import { GYM_ACCESS_LABEL, type GymAccess } from "../../../../shared/saas.ts";
 import { formatDate } from "../../lib/format.ts";
@@ -53,7 +53,7 @@ export function PlatformPage() {
           <h1>Gyms</h1>
           <p>Onboard gyms, track their GymDesk plan, pause or archive them.</p>
         </div>
-        <Button variant="primary" icon={<FiPlus />} onClick={() => setCreating(true)}>
+        <Button variant="primary" icon={<PiPlusBold />} onClick={() => setCreating(true)}>
           Onboard gym
         </Button>
       </div>
@@ -83,28 +83,29 @@ export function PlatformPage() {
         </div>
       )}
 
-      <div className="chips" role="toolbar" aria-label="Filter gyms">
-        {FILTERS.map((f) => (
-          <button key={f.value} type="button" className="chip" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>
-            {f.label}
-            {data && <span className="chip__count">{count(f.value)}</span>}
-          </button>
-        ))}
-      </div>
-
       <div className="card">
+        <div className="card__bar card__bar--tools">
+          <div className="chips" role="toolbar" aria-label="Filter gyms">
+            {FILTERS.map((f) => (
+              <button key={f.value} type="button" className="chip" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>
+                {f.label}
+                {data && <span className="chip__count">{count(f.value)}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
         {error && !data ? (
           <ErrorState message={error.message} onRetry={reload} />
         ) : loading && !data ? (
           <ListSkeleton rows={3} />
         ) : list.length === 0 ? (
           <EmptyState
-            icon={<FiGrid />}
+            icon={<PiBuildingsDuotone />}
             title={items.length === 0 ? "No gyms yet" : "Nothing here"}
             text={items.length === 0 ? "Onboard the first gym with its owner's Gmail." : undefined}
             action={
               items.length === 0 ? (
-                <Button variant="primary" icon={<FiPlus />} onClick={() => setCreating(true)}>
+                <Button variant="primary" icon={<PiPlusBold />} onClick={() => setCreating(true)}>
                   Onboard gym
                 </Button>
               ) : undefined
@@ -128,7 +129,7 @@ export function PlatformPage() {
                   </span>
                   {g.ownerEmail === session?.user?.email && (
                     <span style={{ fontSize: 12, color: "var(--warning)", display: "flex", gap: 4, alignItems: "center" }}>
-                      <FiAlertTriangle aria-hidden /> Owner is you
+                      <PiWarningBold aria-hidden /> Owner is you
                     </span>
                   )}
                 </span>

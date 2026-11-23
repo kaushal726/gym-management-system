@@ -348,22 +348,43 @@ select.input {
 .card--pad {
   padding: var(--space-4);
 }
-@media (min-width: 768px) {
-  .card--pad {
-    padding: var(--space-5);
-  }
-}
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.section__head {
+/* A card's own heading row: its title on the left, its action (Edit, Add PT…) on the right. */
+.card__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: 32px;
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.card__body {
+  padding: var(--space-4);
+}
+@media (min-width: 768px) {
+  .card__body {
+    padding: var(--space-5);
+  }
+}
+/* Top strip of a card that holds its tabs or its search and filters, so controls never float on the page. */
+.card__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+}
+.card__bar--tools {
+  padding-bottom: var(--space-4);
+}
+.card__bar .tabs {
+  margin: 0 calc(-1 * var(--space-2));
+  border-bottom: 0;
+}
+@media (min-width: 768px) {
+  .card--pad {
+    padding: var(--space-5);
+  }
 }
 .section__title {
   font-family: var(--font-heading);
@@ -623,8 +644,8 @@ a.stat:hover {
   color: var(--text-3);
 }
 .state-box__icon svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 .state-box__icon--danger {
   background: var(--danger-soft);
@@ -1291,6 +1312,11 @@ a.stat:hover {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-2);
+  padding: var(--space-4) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 .quick {
   display: flex;
@@ -1313,9 +1339,8 @@ a.stat:hover {
   width: 60px;
   height: 60px;
   border-radius: 20px;
-  background: var(--surface);
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
   color: var(--ink);
   transition:
     transform var(--dur) var(--ease-out),
@@ -1336,8 +1361,8 @@ a.stat:hover {
   }
 }
 .quick__icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 .quick__badge {
   position: absolute;
@@ -1384,8 +1409,8 @@ a.stat:hover {
   color: var(--text-3);
 }
 .metric__icon svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 .metric__value {
   font-family: var(--font-display);
@@ -1453,6 +1478,6 @@ a.stat:hover {
     padding-top: 0;
   }
   .quick-row {
-    grid-template-columns: repeat(4, minmax(0, 120px));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

@@ -1,6 +1,6 @@
 /* Member's own check-in from the QR. The result fills the card in the state's colour so the desk can see it from a distance. */
 import { useState } from "react";
-import { FiAlertCircle, FiCheckCircle, FiClock, FiPauseCircle } from "react-icons/fi";
+import { PiCheckCircleBold, PiClockBold, PiPauseCircleBold, PiWarningCircleBold } from "react-icons/pi";
 import type { CheckinResult, PublicGym } from "../../../../shared/api.ts";
 import { api, errorMessage } from "../../lib/api.ts";
 import { formatDate, formatTime } from "../../lib/format.ts";
@@ -17,12 +17,12 @@ function position(): Promise<GeolocationPosition> {
 }
 
 const LOOK = {
-  ACTIVE: { bg: "var(--success-soft)", fg: "var(--success)", Icon: FiCheckCircle, title: "You're in" },
-  GRACE: { bg: "var(--warning-soft)", fg: "var(--warning)", Icon: FiClock, title: "Renew soon" },
-  FROZEN: { bg: "var(--accent-soft)", fg: "var(--accent-soft-text)", Icon: FiPauseCircle, title: "Plan is frozen" },
-  UPCOMING: { bg: "var(--accent-soft)", fg: "var(--accent-soft-text)", Icon: FiClock, title: "Plan not started" },
-  EXPIRED: { bg: "var(--danger-soft)", fg: "var(--danger)", Icon: FiAlertCircle, title: "Membership expired" },
-  NO_PLAN: { bg: "var(--danger-soft)", fg: "var(--danger)", Icon: FiAlertCircle, title: "No active plan" },
+  ACTIVE: { bg: "var(--success-soft)", fg: "var(--success)", Icon: PiCheckCircleBold, title: "You're in" },
+  GRACE: { bg: "var(--warning-soft)", fg: "var(--warning)", Icon: PiClockBold, title: "Renew soon" },
+  FROZEN: { bg: "var(--accent-soft)", fg: "var(--accent-soft-text)", Icon: PiPauseCircleBold, title: "Plan is frozen" },
+  UPCOMING: { bg: "var(--accent-soft)", fg: "var(--accent-soft-text)", Icon: PiClockBold, title: "Plan not started" },
+  EXPIRED: { bg: "var(--danger-soft)", fg: "var(--danger)", Icon: PiWarningCircleBold, title: "Membership expired" },
+  NO_PLAN: { bg: "var(--danger-soft)", fg: "var(--danger)", Icon: PiWarningCircleBold, title: "No active plan" },
 } as const;
 
 function detail(r: CheckinResult): string {
@@ -87,7 +87,7 @@ export function CheckinPanel({ gym }: { gym: PublicGym }) {
         Tap when you arrive.{gym.checkinNeedsLocation ? " We check your location once to confirm you are at the gym." : ""}
       </p>
       {error && <Notice tone="danger">{error}</Notice>}
-      <Button variant="primary" block loading={busy} onClick={() => void checkIn()} icon={<FiCheckCircle />}>
+      <Button variant="primary" block loading={busy} onClick={() => void checkIn()} icon={<PiCheckCircleBold />}>
         Check in now
       </Button>
     </div>

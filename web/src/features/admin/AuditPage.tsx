@@ -1,6 +1,6 @@
 /* Audit log (owner): every change to members, plans, money and settings, who made it and why. */
 import { useEffect, useState } from "react";
-import { FiShield } from "react-icons/fi";
+import { PiShieldCheckDuotone } from "react-icons/pi";
 import type { AuditEntry } from "../../../../shared/api.ts";
 import { api, errorMessage } from "../../lib/api.ts";
 import { formatDateTime } from "../../lib/format.ts";
@@ -22,10 +22,12 @@ const ACTION_LABEL: Record<string, string> = {
   MEMBER_ANONYMISE: "Personal data deleted",
   MEMBER_LINK_SENT: "App link sent",
   MEMBER_LINK: "Google account linked",
+  MEMBER_UNLINK: "App unlinked",
   MEMBER_MERGE: "Duplicate sign-up merged",
   SUB_CREATE: "Plan started",
   SUB_RENEW: "Plan renewed",
   SUB_CANCEL: "Plan cancelled",
+  SUB_EDIT: "Member's plan edited",
   SUB_FREEZE: "Plan frozen",
   PAYMENT_ADD: "Payment recorded",
   PAYMENT_VOID: "Payment voided",
@@ -38,7 +40,7 @@ const ACTION_LABEL: Record<string, string> = {
   STAFF_REMOVE: "Staff removed",
 };
 
-const SENSITIVE = new Set(["PAYMENT_VOID", "PAYMENT_REFUND", "SUB_CANCEL", "MEMBER_ANONYMISE", "STAFF_REMOVE", "MEMBER_PHONE_EDIT"]);
+const SENSITIVE = new Set(["PAYMENT_VOID", "PAYMENT_REFUND", "SUB_CANCEL", "SUB_EDIT", "MEMBER_UNLINK", "MEMBER_ANONYMISE", "STAFF_REMOVE", "MEMBER_PHONE_EDIT"]);
 
 function changed(before: unknown, after: unknown): string[] {
   if (!before || !after || typeof before !== "object" || typeof after !== "object") return [];
@@ -91,7 +93,7 @@ export function AuditPage() {
         ) : first.loading && !first.data ? (
           <ListSkeleton rows={6} />
         ) : items.length === 0 ? (
-          <EmptyState icon={<FiShield />} title="No changes yet" />
+          <EmptyState icon={<PiShieldCheckDuotone />} title="No changes yet" />
         ) : (
           <div className="list">
             {items.map((a) => {

@@ -1,6 +1,6 @@
 /* Routes. Member pages, the staff app and the platform console share one bundle; staff screens load on demand. */
 import { lazy, Suspense, type ReactNode } from "react";
-import { FiRefreshCw } from "react-icons/fi";
+import { PiArrowsClockwiseBold } from "react-icons/pi";
 import { matchPath, usePath } from "./lib/router.tsx";
 import { useSession } from "./lib/session.tsx";
 import { Button } from "./components/ui/Button.tsx";
@@ -77,7 +77,7 @@ export function App() {
         text={error.message}
         hideHome
         actions={
-          <Button variant="primary" icon={<FiRefreshCw />} onClick={() => void refresh()}>
+          <Button variant="primary" icon={<PiArrowsClockwiseBold />} onClick={() => void refresh()}>
             Try again
           </Button>
         }

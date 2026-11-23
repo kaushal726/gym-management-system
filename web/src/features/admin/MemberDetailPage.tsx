@@ -1,6 +1,6 @@
 /* One member at the desk: where they stand, what they owe, and every action the desk can take. */
 import { useState } from "react";
-import { FiArrowLeft, FiCheckSquare, FiCreditCard, FiEdit2, FiMessageCircle, FiMoreHorizontal, FiPhone, FiPlayCircle, FiRefreshCw, FiZap } from "react-icons/fi";
+import { PiArrowLeftBold, PiArrowsClockwiseBold, PiCheckSquareBold, PiDotsThreeBold, PiLightningBold, PiPencilSimpleBold, PiPhoneBold, PiPlayCircleBold, PiWalletBold, PiWhatsappLogoBold } from "react-icons/pi";
 import type { MemberDetail, Payment, Subscription } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { callLink, formatMobile, whatsappLink } from "../../../../shared/phone.ts";
@@ -18,10 +18,11 @@ import { CancelSheet, FreezeSheet, PaymentSheet } from "./PlanActionSheets.tsx";
 import { MemberFormSheet } from "./MemberFormSheet.tsx";
 import { MemberMoreSheet } from "./MemberMoreSheet.tsx";
 import { PaymentDetailSheet, SubscriptionDetailSheet } from "./RecordSheets.tsx";
+import { EditPlanSheet } from "./EditPlanSheet.tsx";
 
 type Open =
   | { kind: "activate"; plan: "MEMBERSHIP" | "PT" }
-  | { kind: "pay" | "freeze" | "cancel" | "sub"; sub: Subscription }
+  | { kind: "pay" | "freeze" | "cancel" | "editPlan" | "sub"; sub: Subscription }
   | { kind: "payment"; payment: Payment }
   | { kind: "edit" | "more" }
   | null;
@@ -71,7 +72,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
   return (
     <div className="page">
       <Link href={`${base}/members`} className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 600, minHeight: 32 }}>
-        <FiArrowLeft aria-hidden /> Members
+        <PiArrowLeftBold aria-hidden /> Members
       </Link>
 
       <div className="card card--pad enter" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -119,23 +120,23 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
         {!rejected && !archived && (
           <div className="detail-actions">
             <div className="detail-actions__main">
-              <Button variant="primary" icon={pending || member.status !== "JOINED" ? <FiPlayCircle /> : <FiRefreshCw />} onClick={() => setOpen({ kind: "activate", plan: "MEMBERSHIP" })}>
+              <Button variant="primary" icon={pending || member.status !== "JOINED" ? <PiPlayCircleBold /> : <PiArrowsClockwiseBold />} onClick={() => setOpen({ kind: "activate", plan: "MEMBERSHIP" })}>
                 {pending ? "Activate" : data.isFirstSubscription ? "Start plan" : "Renew"}
               </Button>
               {dueSub && (
-                <Button icon={<FiCreditCard />} onClick={() => setOpen({ kind: "pay", sub: dueSub })}>
+                <Button icon={<PiWalletBold />} onClick={() => setOpen({ kind: "pay", sub: dueSub })}>
                   Take {formatRupees(dueSub.duePaise)}
                 </Button>
               )}
             </div>
             <div className="detail-actions__quick">
-              <ButtonLink href={whatsappLink(member.phone, `Hi ${member.name.split(" ")[0]},`)} external icon={<FiMessageCircle />}>
+              <ButtonLink href={whatsappLink(member.phone, `Hi ${member.name.split(" ")[0]},`)} external icon={<PiWhatsappLogoBold />}>
                 WhatsApp
               </ButtonLink>
-              <ButtonLink href={callLink(member.phone)} external icon={<FiPhone />}>
+              <ButtonLink href={callLink(member.phone)} external icon={<PiPhoneBold />}>
                 Call
               </ButtonLink>
-              <Button icon={<FiMoreHorizontal />} onClick={() => setOpen({ kind: "more" })}>
+              <Button icon={<PiDotsThreeBold />} onClick={() => setOpen({ kind: "more" })}>
                 More
               </Button>
             </div>
@@ -143,7 +144,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
         )}
         {(rejected || archived) && (
           <div style={{ display: "flex", gap: 8 }}>
-            <Button icon={<FiMoreHorizontal />} onClick={() => setOpen({ kind: "more" })}>
+            <Button icon={<PiDotsThreeBold />} onClick={() => setOpen({ kind: "more" })}>
               Options
             </Button>
           </div>
@@ -152,48 +153,42 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
 
       <div className="two-col">
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">Plans</span>
               {member.status === "JOINED" && !archived && (
-                <Button size="sm" variant="ghost" icon={<FiZap />} onClick={() => setOpen({ kind: "activate", plan: "PT" })}>
+                <Button size="sm" variant="ghost" icon={<PiLightningBold />} onClick={() => setOpen({ kind: "activate", plan: "PT" })}>
                   Add PT
                 </Button>
               )}
             </div>
-            <div className="card">
-              <SubscriptionList subscriptions={data.subscriptions} today={data.today} onSelect={(sub) => setOpen({ kind: "sub", sub })} />
-            </div>
+            <SubscriptionList subscriptions={data.subscriptions} today={data.today} onSelect={(sub) => setOpen({ kind: "sub", sub })} />
           </section>
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">Payments</span>
             </div>
-            <div className="card">
-              <PaymentList payments={data.payments} onSelect={(payment) => setOpen({ kind: "payment", payment })} />
-            </div>
+            <PaymentList payments={data.payments} onSelect={(payment) => setOpen({ kind: "payment", payment })} />
           </section>
           {data.freezes.length > 0 && (
-            <section className="section">
-              <div className="section__head">
+            <section className="card">
+              <div className="card__head">
                 <span className="section__title">Freezes</span>
               </div>
-              <div className="card">
-                <FreezeList freezes={data.freezes} />
-              </div>
+              <FreezeList freezes={data.freezes} />
             </section>
           )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <section className="section">
-            <div className="section__head">
+          <section className="card">
+            <div className="card__head">
               <span className="section__title">Details</span>
-              <Button size="sm" variant="ghost" icon={<FiEdit2 />} onClick={() => setOpen({ kind: "edit" })}>
+              <Button size="sm" variant="ghost" icon={<PiPencilSimpleBold />} onClick={() => setOpen({ kind: "edit" })}>
                 Edit
               </Button>
             </div>
-            <div className="card card--pad">
+            <div className="card__body">
               <dl className="kv">
                 <dt>Mobile</dt>
                 <dd className="tabular">{formatMobile(member.phone)}</dd>
@@ -219,14 +214,14 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
             </div>
           </section>
           {data.visits.length > 0 && (
-            <section className="section">
-              <div className="section__head">
+            <section className="card">
+              <div className="card__head">
                 <span className="section__title">Recent visits</span>
               </div>
-              <div className="card list">
+              <div className="list">
                 {data.visits.slice(0, 8).map((v) => (
                   <div className="list-row" key={v.id} style={{ minHeight: 48 }}>
-                    <FiCheckSquare aria-hidden className="muted" />
+                    <PiCheckSquareBold aria-hidden className="muted" />
                     <span className="list-row__main">{formatDateTime(v.at)}</span>
                     <StateBadge state={v.result} />
                   </div>
@@ -235,11 +230,11 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
             </section>
           )}
           {data.phoneHistory.length > 0 && (
-            <section className="section">
-              <div className="section__head">
+            <section className="card">
+              <div className="card__head">
                 <span className="section__title">Number changes</span>
               </div>
-              <div className="card card--pad">
+              <div className="card__body">
                 <dl className="kv">
                   {data.phoneHistory.map((h) => (
                     <div key={h.changedAt} style={{ display: "contents" }}>
@@ -260,6 +255,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
       <PaymentSheet open={open?.kind === "pay"} gymId={gymId} sub={open?.kind === "pay" ? open.sub : null} onClose={close} onDone={done} />
       <FreezeSheet open={open?.kind === "freeze"} gymId={gymId} sub={open?.kind === "freeze" ? open.sub : null} today={data.today} isOwner={isOwner} onClose={close} onDone={done} />
       <CancelSheet open={open?.kind === "cancel"} gymId={gymId} sub={open?.kind === "cancel" ? open.sub : null} today={data.today} onClose={close} onDone={done} />
+      {isOwner && <EditPlanSheet open={open?.kind === "editPlan"} gymId={gymId} sub={open?.kind === "editPlan" ? open.sub : null} onClose={close} onDone={done} />}
       <SubscriptionDetailSheet
         open={open?.kind === "sub"}
         sub={open?.kind === "sub" ? open.sub : null}

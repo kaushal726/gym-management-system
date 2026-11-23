@@ -1,5 +1,5 @@
 /* /g/:slug — the page behind the gym's QR code. One QR for everything: sign in, register, wait at the desk, check in. */
-import { FiArrowRight, FiRefreshCw, FiSlash } from "react-icons/fi";
+import { PiArrowRightBold, PiArrowsClockwiseBold, PiProhibitDuotone } from "react-icons/pi";
 import type { GymEntry } from "../../../../shared/api.ts";
 import { useApi } from "../../lib/useApi.ts";
 import { useSession } from "../../lib/session.tsx";
@@ -42,7 +42,7 @@ export function JoinPage({ slug }: { slug: string }) {
         title="Couldn't load this page"
         text={entry.error?.message ?? "Please try again."}
         actions={
-          <Button variant="primary" icon={<FiRefreshCw />} onClick={entry.reload}>
+          <Button variant="primary" icon={<PiArrowsClockwiseBold />} onClick={entry.reload}>
             Try again
           </Button>
         }
@@ -85,7 +85,7 @@ export function JoinPage({ slug }: { slug: string }) {
       }
     >
       {!member && !gym.open ? (
-        <EmptyState icon={<FiSlash />} title="Not taking sign-ups right now" text="Please contact the gym's desk." />
+        <EmptyState icon={<PiProhibitDuotone />} title="Not taking sign-ups right now" text="Please contact the gym's desk." />
       ) : !member ? (
         <RegisterForm slug={slug} gymName={gym.name} onDone={entry.reload} />
       ) : member.status === "PENDING" || member.status === "LEAD" ? (
@@ -102,11 +102,11 @@ export function JoinPage({ slug }: { slug: string }) {
           <Notice tone="info">Show this screen at the desk. They will pick your plan and take the payment.</Notice>
         </div>
       ) : member.status === "REJECTED" ? (
-        <EmptyState icon={<FiSlash />} title="Please see the desk" text="Your request could not be accepted. The desk can help you." />
+        <EmptyState icon={<PiProhibitDuotone />} title="Please see the desk" text="Your request could not be accepted. The desk can help you." />
       ) : (
         <>
           {gym.checkinEnabled && gym.open && <CheckinPanel gym={gym} />}
-          <ButtonLink href={`/me/${gym.id}`} variant={gym.checkinEnabled ? "secondary" : "primary"} block icon={<FiArrowRight />}>
+          <ButtonLink href={`/me/${gym.id}`} variant={gym.checkinEnabled ? "secondary" : "primary"} block icon={<PiArrowRightBold />}>
             View my membership
           </ButtonLink>
         </>

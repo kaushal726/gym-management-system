@@ -1,6 +1,6 @@
 /* Staff: invite by Google email. Managers run the desk but never see revenue or edit money. */
 import { useState } from "react";
-import { FiUserCheck, FiUserPlus } from "react-icons/fi";
+import { PiUserCheckDuotone, PiUserPlusBold } from "react-icons/pi";
 import type { StaffEntry } from "../../../../shared/api.ts";
 import type { TeamRole } from "../../../../shared/constants.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
@@ -62,7 +62,7 @@ export function StaffPage() {
           <h1>Staff</h1>
           <p>Add your managers and trainers. They run the desk: members, plans, payments and check-ins. Only you, the owner, see sales, reports and the audit log, void entries and change settings.</p>
         </div>
-        <Button variant="primary" icon={<FiUserPlus />} onClick={() => setInviting(true)}>
+        <Button variant="primary" icon={<PiUserPlusBold />} onClick={() => setInviting(true)}>
           Invite
         </Button>
       </div>
@@ -72,7 +72,7 @@ export function StaffPage() {
         ) : loading && !data ? (
           <ListSkeleton rows={2} />
         ) : data && data.items.length === 0 ? (
-          <EmptyState icon={<FiUserCheck />} title="Just you for now" />
+          <EmptyState icon={<PiUserCheckDuotone />} title="Just you for now" />
         ) : (
           <div className="list">
             {data?.items.map((s) => {

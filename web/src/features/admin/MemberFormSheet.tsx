@@ -111,8 +111,9 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
           value={form.email}
           onChange={(e) => set("email", e.target.value)}
           maxLength={254}
+          disabled={!!member?.linkedEmail}
           error={fieldError("email")}
-          hint={member?.linkedEmail ? `Signs in as ${member.linkedEmail}.` : "When they sign in with Google using this email, their plan and dues open on their phone."}
+          hint={member?.linkedEmail ? `Signs in as ${member.linkedEmail}. To change it, unlink the app from More first.` : "When they sign in with Google using this email, their plan and dues open on their phone."}
         />
         <div className="form-grid form-grid--2">
           <TextField label="Date of birth" optional type="date" max={today} value={form.dob} onChange={(e) => set("dob", e.target.value)} error={fieldError("dob")} />

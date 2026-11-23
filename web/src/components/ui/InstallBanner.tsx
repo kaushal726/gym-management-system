@@ -1,6 +1,6 @@
 /* "Install on your phone" card, shown only on phones that haven't installed the app yet. */
 import { useState } from "react";
-import { FiDownload, FiShare, FiX } from "react-icons/fi";
+import { PiDownloadSimpleBold, PiExportBold, PiXBold } from "react-icons/pi";
 import { dismissInstall, promptInstall, useInstallMode } from "../../lib/install.ts";
 import { Button, IconButton } from "./Button.tsx";
 import { BrandMark } from "./Brand.tsx";
@@ -24,16 +24,16 @@ export function InstallBanner({ text = "Open it like an app, straight from your 
           </p>
         ) : (
           <p className="muted" style={{ fontSize: 13 }}>
-            Tap <FiShare aria-label="Share" style={{ verticalAlign: "-2px" }} /> Share, then <strong>Add to Home Screen</strong>.
+            Tap <PiExportBold aria-label="Share" style={{ verticalAlign: "-2px" }} /> Share, then <strong>Add to Home Screen</strong>.
           </p>
         )}
       </div>
       {mode === "prompt" && (
-        <Button size="sm" variant="primary" icon={<FiDownload />} onClick={() => void promptInstall().then((ok) => ok && setHidden(true))}>
+        <Button size="sm" variant="primary" icon={<PiDownloadSimpleBold />} onClick={() => void promptInstall().then((ok) => ok && setHidden(true))}>
           Install
         </Button>
       )}
-      <IconButton label="Not now" icon={<FiX />} onClick={close} />
+      <IconButton label="Not now" icon={<PiXBold />} onClick={close} />
     </div>
   );
 }

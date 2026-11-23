@@ -1,6 +1,7 @@
 /* What a member does from the gym's QR: see the gym, register, check in, and link a desk-added record. */
 import { Hono } from "hono";
 import type { CheckinResult, GymEntry, MeMembership } from "../../../shared/api.ts";
+import { CLAIM_BLOCK_MESSAGE, type ClaimBlock, type ClaimInfo } from "../../../shared/claim.ts";
 import { ageOn, todayIn } from "../../../shared/dates.ts";
 import { GENDERS } from "../../../shared/constants.ts";
 import type { AppEnv } from "../env.ts";
@@ -140,35 +141,54 @@ interface ClaimRow {
   expires_at: string;
   used_at: string | null;
   member_name: string;
+  member_invite_email: string | null;
+  member_user_id: string | null;
   gym_name: string;
   gym_slug: string;
 }
 
+const CLAIM_EXPIRED = "This link has expired. Please ask the desk for a new one.";
+
 async function claimOr404(db: D1Database, token: string): Promise<ClaimRow> {
   const row = await db
     .prepare(
-      `SELECT ct.*, m.name AS member_name, g.name AS gym_name, g.slug AS gym_slug FROM claim_tokens ct
-       JOIN members m ON m.id = ct.member_id JOIN gyms g ON g.id = ct.gym_id WHERE ct.token_hash = ?1`,
+      `SELECT ct.*, m.name AS member_name, m.invite_email AS member_invite_email, m.user_id AS member_user_id, g.name AS gym_name, g.slug AS gym_slug FROM claim_tokens ct
+       JOIN members m ON m.id = ct.member_id JOIN gyms g ON g.id = ct.gym_id WHERE ct.token_hash = ?1 AND m.anonymised_at IS NULL`,
     )
     .bind(await sha256Hex(token))
     .first<ClaimRow>();
-  if (!row || row.used_at || row.expires_at < nowIso()) throw new ApiError(410, "This link has expired. Please ask the desk for a new one.");
+  if (!row || row.used_at || row.expires_at < nowIso()) throw new ApiError(410, CLAIM_EXPIRED);
   return row;
+}
+
+/** Gym staff can't take a member's link, and a member added with a Gmail can only be linked by that Gmail. */
+async function claimBlock(db: D1Database, claim: ClaimRow, user: { id: string; email: string }): Promise<ClaimBlock | null> {
+  const staff = await db.prepare("SELECT 1 FROM gym_staff WHERE gym_id = ?1 AND user_id = ?2 AND active = 1").bind(claim.gym_id, user.id).first();
+  if (staff) return "STAFF";
+  if (claim.member_user_id && claim.member_user_id !== user.id) return "ALREADY_LINKED";
+  if (claim.member_invite_email && claim.member_invite_email !== user.email.toLowerCase()) return "OTHER_EMAIL";
+  return null;
 }
 
 publicRoutes.get("/claim/:token", async (c) => {
   const claim = await claimOr404(c.env.DB, c.req.param("token"));
-  return c.json({ gymName: claim.gym_name, gymSlug: claim.gym_slug, memberName: claim.member_name });
+  const user = c.get("user");
+  return c.json<ClaimInfo>({ gymName: claim.gym_name, gymSlug: claim.gym_slug, memberName: claim.member_name, blocked: user ? await claimBlock(c.env.DB, claim, user) : null });
 });
 
 publicRoutes.post("/claim/:token", requireUser, async (c) => {
   const user = currentUser(c);
   const claim = await claimOr404(c.env.DB, c.req.param("token"));
+  const blocked = await claimBlock(c.env.DB, claim, user);
+  if (blocked) throw new ApiError(403, CLAIM_BLOCK_MESSAGE[blocked], undefined, `CLAIM_${blocked}`);
   const other = await memberOfUser(c.env.DB, claim.gym_id, user.id);
   if (other && other.id !== claim.member_id && other.status === "JOINED") {
     throw new ApiError(409, "This Google account is already linked to another membership at this gym. Please see the desk.");
   }
   const now = nowIso();
+  // Use the link up first, in one conditional write, so two people opening it at once can't both link.
+  const consumed = await c.env.DB.prepare("UPDATE claim_tokens SET used_at = ?1 WHERE token_hash = ?2 AND used_at IS NULL AND expires_at > ?1").bind(now, claim.token_hash).run();
+  if (consumed.meta.changes !== 1) throw new ApiError(410, CLAIM_EXPIRED);
   const statements: D1PreparedStatement[] = [];
   if (other && other.id !== claim.member_id) {
     // A duplicate self-registration from the same person: retire it so the desk record becomes theirs.
@@ -179,7 +199,6 @@ publicRoutes.post("/claim/:token", requireUser, async (c) => {
   }
   statements.push(
     c.env.DB.prepare("UPDATE members SET user_id = ?1 WHERE id = ?2").bind(user.id, claim.member_id),
-    c.env.DB.prepare("UPDATE claim_tokens SET used_at = ?1 WHERE token_hash = ?2").bind(now, claim.token_hash),
     auditStatement(c.env.DB, { gymId: claim.gym_id, actorId: user.id, action: "MEMBER_LINK", entity: "member", entityId: claim.member_id, after: { email: user.email } }),
   );
   await c.env.DB.batch(statements);

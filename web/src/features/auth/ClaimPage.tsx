@@ -1,6 +1,6 @@
 /* /claim/:token — links the person's Google account to the membership the desk created for them. */
-import { useState } from "react";
-import { FiLink } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { PiLinkBold } from "react-icons/pi";
 import { api, errorMessage } from "../../lib/api.ts";
 import { navigate } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
@@ -12,12 +12,20 @@ import { SignInCard } from "./SignInCard.tsx";
 import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
 import { MEMBER_POINTS } from "./authPoints.tsx";
+import { AccountChip } from "../../components/ui/AccountChip.tsx";
+import { CLAIM_BLOCK_MESSAGE, type ClaimInfo } from "../../../../shared/claim.ts";
 
 export function ClaimPage({ token }: { token: string }) {
   const { session, refresh } = useSession();
-  const claim = useApi<{ gymName: string; gymSlug: string; memberName: string }>(`/public/claim/${token}`);
+  const claim = useApi<ClaimInfo>(`/public/claim/${token}`);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const userId = session?.user?.id;
+  const reloadClaim = claim.reload;
+  // Who may use the link depends on who is signed in, so ask again after signing in or switching account.
+  useEffect(() => {
+    reloadClaim();
+  }, [userId, reloadClaim]);
 
   if (claim.loading) {
     return (
@@ -43,30 +51,46 @@ export function ClaimPage({ token }: { token: string }) {
       setBusy(false);
     }
   };
+  const hero = {
+    fit: true,
+    preview: "member" as const,
+    eyebrow: gymName,
+    heading: (
+      <>
+        Hi <em>{memberName.split(" ")[0]}</em>
+      </>
+    ),
+    text: "Your membership is ready. Link your Gmail once and your plan, dues and receipts open on your phone.",
+    points: MEMBER_POINTS,
+  };
   if (!session?.user) {
     return (
-      <AuthLayout fit preview="member" eyebrow={gymName} heading={`Hi ${memberName.split(" ")[0]}, your membership is ready.`} text="Sign in once and your plan, dues and receipts are always on your phone." points={MEMBER_POINTS}>
+      <AuthLayout {...hero}>
         <SignInCard title="Continue with Google" subtitle="Use the Gmail you want to keep for this gym." />
       </AuthLayout>
     );
   }
   return (
-    <NarrowLayout title={gymName}>
-      {(
-        <div className="card card--pad form-grid enter">
-          <span className="state-box__icon" aria-hidden>
-            <FiLink />
-          </span>
-          <h1>Link your membership</h1>
-          <p className="muted">
-            This connects the membership of <strong>{memberName}</strong> at {gymName} to {session.user.email}.
+    <AuthLayout {...hero}>
+      <div className="card signin enter">
+        <div>
+          <h2 className="signin__title">Link this Gmail</h2>
+          <p className="muted signin__sub">
+            {memberName}'s plan at {gymName} will open with this account. Not yours? Switch first.
           </p>
-          {error && <Notice tone="danger">{error}</Notice>}
-          <Button variant="primary" block loading={busy} onClick={() => void link()}>
-            Link and continue
-          </Button>
         </div>
-      )}
-    </NarrowLayout>
+        <AccountChip afterSignOut={`/claim/${token}`} />
+        {claim.data.blocked ? (
+          <Notice tone="warning">{CLAIM_BLOCK_MESSAGE[claim.data.blocked]}</Notice>
+        ) : (
+          <>
+            {error && <Notice tone="danger">{error}</Notice>}
+            <Button variant="primary" block icon={<PiLinkBold />} loading={busy} onClick={() => void link()}>
+              Link and continue
+            </Button>
+          </>
+        )}
+      </div>
+    </AuthLayout>
   );
 }

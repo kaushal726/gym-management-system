@@ -1,7 +1,7 @@
 /* One full-page screen for "you can't be here" moments: no access, page or gym not found, paused gym,
  * expired link, load errors. Always says who is signed in and offers a way out. */
 import type { ReactNode } from "react";
-import { FiHome, FiLogOut } from "react-icons/fi";
+import { PiHouseBold, PiSignOutBold } from "react-icons/pi";
 import { navigate } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { Button } from "../ui/Button.tsx";
@@ -36,12 +36,12 @@ export function StatusScreen({ art, title, text, actions, hideHome }: Props) {
           <div className="status__actions">
             {actions}
             {!hideHome && (
-              <Button variant={actions ? "secondary" : "primary"} icon={<FiHome />} onClick={() => navigate("/")}>
+              <Button variant={actions ? "secondary" : "primary"} icon={<PiHouseBold />} onClick={() => navigate("/")}>
                 Go home
               </Button>
             )}
             {user && (
-              <Button icon={<FiLogOut />} onClick={() => void signOut().then(() => navigate("/"))}>
+              <Button icon={<PiSignOutBold />} onClick={() => void signOut().then(() => navigate("/"))}>
                 Use another account
               </Button>
             )}

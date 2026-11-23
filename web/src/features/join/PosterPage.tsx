@@ -1,5 +1,5 @@
 /* /poster/:slug — a printable A4 poster with the gym's QR code for the desk and the entrance. */
-import { FiArrowLeft, FiPrinter } from "react-icons/fi";
+import { PiArrowLeftBold, PiPrinterBold } from "react-icons/pi";
 import type { GymEntry } from "../../../../shared/api.ts";
 import { useApi } from "../../lib/useApi.ts";
 import { Button } from "../../components/ui/Button.tsx";
@@ -28,11 +28,11 @@ export function PosterPage({ slug }: { slug: string }) {
       </div>
       <div className="poster__print">
         {window.history.length > 1 && (
-          <Button variant="secondary" icon={<FiArrowLeft />} onClick={() => window.history.back()}>
+          <Button variant="secondary" icon={<PiArrowLeftBold />} onClick={() => window.history.back()}>
             Back
           </Button>
         )}
-        <Button variant="primary" icon={<FiPrinter />} onClick={() => window.print()}>
+        <Button variant="primary" icon={<PiPrinterBold />} onClick={() => window.print()}>
           Print
         </Button>
       </div>

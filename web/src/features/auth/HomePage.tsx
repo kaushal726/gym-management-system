@@ -1,7 +1,7 @@
 /* / — signed out: what GymDesk is and the sign-in. Signed in: straight to the one place this account belongs,
  * a short chooser when there are several, or a clear "no gym on this Gmail" with the account shown. */
 import type { ReactNode } from "react";
-import { FiArrowRight, FiBriefcase, FiPlusCircle, FiUser } from "react-icons/fi";
+import { PiArrowRightBold, PiBriefcaseBold, PiPlusCircleBold, PiUserBold } from "react-icons/pi";
 import { Link, Redirect } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { ROLE_LABEL } from "../../lib/states.ts";
@@ -48,9 +48,9 @@ export function HomePage() {
   if (session.isPlatformAdmin) return <Redirect to="/platform" />;
 
   const destinations: Destination[] = [
-    ...session.staffOf.map((s) => ({ href: `/admin/${s.gymId}`, title: s.gymName, sub: `${ROLE_LABEL[s.role]} · open the desk`, icon: <FiBriefcase /> })),
-    ...(session.memberOf.length ? [{ href: "/me", title: "My membership", sub: session.memberOf.map((m) => m.gymName).join(", "), icon: <FiUser /> }] : []),
-    ...(config?.allowGymSignup ? [{ href: "/new-gym", title: "Create a gym", sub: "Set up your own gym", icon: <FiPlusCircle /> }] : []),
+    ...session.staffOf.map((s) => ({ href: `/admin/${s.gymId}`, title: s.gymName, sub: `${ROLE_LABEL[s.role]} · open the desk`, icon: <PiBriefcaseBold /> })),
+    ...(session.memberOf.length ? [{ href: "/me", title: "My membership", sub: session.memberOf.map((m) => m.gymName).join(", "), icon: <PiUserBold /> }] : []),
+    ...(config?.allowGymSignup ? [{ href: "/new-gym", title: "Create a gym", sub: "Set up your own gym", icon: <PiPlusCircleBold /> }] : []),
   ];
   const real = destinations.filter((d) => d.href !== "/new-gym");
   if (real.length === 1) return <Redirect to={real[0].href} />;
@@ -90,7 +90,7 @@ export function HomePage() {
                   <span className="list-row__title">{d.title}</span>
                   <span className="list-row__sub">{d.sub}</span>
                 </span>
-                <FiArrowRight aria-hidden className="home-link__arrow" />
+                <PiArrowRightBold aria-hidden className="home-link__arrow" />
               </Link>
             ))}
           </div>

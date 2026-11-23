@@ -29,11 +29,13 @@ export async function upsertUser(db: D1Database, identity: GoogleIdentity): Prom
   if (!row) throw new Error("User upsert returned nothing");
   // Staff invites are by email: the first sign-in with that email accepts them.
   // Members added by email work the same way: link every gym where this email waits and the person isn't already a member.
+  // OR IGNORE: if a join at the same moment already took that gym, skip it rather than fail the sign-in.
   await db.batch([
     db.prepare("UPDATE gym_staff SET user_id = ?1 WHERE invite_email = ?2 AND user_id IS NULL").bind(row.id, row.email),
     db
       .prepare(
-        `UPDATE members SET user_id = ?1 WHERE invite_email = lower(?2) AND user_id IS NULL AND anonymised_at IS NULL
+        `UPDATE OR IGNORE members SET user_id = ?1 WHERE invite_email = lower(?2) AND user_id IS NULL AND anonymised_at IS NULL
+           AND archived_at IS NULL AND status <> 'REJECTED'
            AND NOT EXISTS (SELECT 1 FROM members other WHERE other.gym_id = members.gym_id AND other.user_id = ?1)`,
       )
       .bind(row.id, row.email),
