@@ -5,11 +5,14 @@ import { FiArrowRight, FiBriefcase, FiPlusCircle, FiUser } from "react-icons/fi"
 import { Link, Redirect } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { ROLE_LABEL } from "../../lib/states.ts";
-import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
+import { AuthLayout, BRAND_HEADING } from "../../components/layout/AuthLayout.tsx";
 import { AccountChip } from "../../components/ui/AccountChip.tsx";
 import { Illustration } from "../../components/ui/Illustration.tsx";
 import { SignInCard } from "./SignInCard.tsx";
 import { GYM_POINTS } from "./authPoints.tsx";
+
+/** The three reasons a gym owner signs up, as chips under the headline. */
+const SELLING_POINTS = ["QR join", "WhatsApp reminders", "Free to start"];
 
 /** What to do when a Gmail has no gym, for each kind of person. */
 const NEXT_STEPS = [
@@ -30,12 +33,9 @@ export function HomePage() {
   if (!session?.user) {
     return (
       <AuthLayout
-        heading={
-          <>
-            Run your gym from your <em>phone.</em>
-          </>
-        }
-        text="Renewals, dues and reminders, sorted. Built for Indian gyms, free to run."
+        heading={BRAND_HEADING}
+        text="Never miss a renewal. Never lose a due."
+        chips={SELLING_POINTS}
         points={GYM_POINTS}
       >
         <SignInCard title="Sign in" subtitle="Gym owners, staff and members all sign in with Google." />

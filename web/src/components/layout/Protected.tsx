@@ -7,7 +7,7 @@ import { useSession } from "../../lib/session.tsx";
 import { GYM_POINTS, MEMBER_POINTS } from "../../features/auth/authPoints.tsx";
 import { SignInCard } from "../../features/auth/SignInCard.tsx";
 import { ButtonLink } from "../ui/Button.tsx";
-import { AuthLayout } from "./AuthLayout.tsx";
+import { AuthLayout, BRAND_HEADING } from "./AuthLayout.tsx";
 import { StatusScreen } from "./StatusScreen.tsx";
 
 /**
@@ -17,11 +17,11 @@ import { StatusScreen } from "./StatusScreen.tsx";
  */
 export type Guard = "public" | "member" | "staff" | "platform" | "gymSignup";
 
-const SIGN_IN: Record<Exclude<Guard, "public">, { heading: string; text: string; title: string; subtitle: string; member: boolean }> = {
-  member: { heading: "Your membership, on your phone.", text: "Days left, dues and every receipt, in one place.", title: "See your membership", subtitle: "Sign in with the Google account you used at your gym.", member: true },
-  staff: { heading: "Your gym's desk, on your phone.", text: "Sign in with the Google account your gym owner added.", title: "Staff sign in", subtitle: "Owners, managers and trainers sign in with Google.", member: false },
-  platform: { heading: "GymDesk platform", text: "Onboard gyms, track their plans and keep them running.", title: "Admin sign in", subtitle: "Only the GymDesk admin account can open this.", member: false },
-  gymSignup: { heading: "Set up your gym in a minute.", text: "Sign in with the Google account you'll use as the owner.", title: "Set up your gym", subtitle: "Continue with Google to start.", member: false },
+const SIGN_IN: Record<Exclude<Guard, "public">, { text: string; title: string; subtitle: string; member: boolean }> = {
+  member: { text: "Your plan, dues and receipts in one place.", title: "See your membership", subtitle: "Sign in with the Google account you used at your gym.", member: true },
+  staff: { text: "Never miss a renewal. Never lose a due.", title: "Staff sign in", subtitle: "Owners, managers and trainers sign in with Google.", member: false },
+  platform: { text: "Platform admin. Onboard gyms and keep them running.", title: "Admin sign in", subtitle: "Only the GymDesk admin account can open this.", member: false },
+  gymSignup: { text: "Set up your gym in a minute.", title: "Set up your gym", subtitle: "Continue with Google to start.", member: false },
 };
 
 export function Protected({ guard, children }: { guard: Guard; children: ReactNode }) {
@@ -31,7 +31,7 @@ export function Protected({ guard, children }: { guard: Guard; children: ReactNo
   if (!session?.user) {
     const s = SIGN_IN[guard];
     return (
-      <AuthLayout heading={s.heading} text={s.text} points={s.member ? MEMBER_POINTS : GYM_POINTS} preview={s.member ? "member" : "gym"}>
+      <AuthLayout heading={BRAND_HEADING} text={s.text} points={s.member ? MEMBER_POINTS : GYM_POINTS} preview={s.member ? "member" : "gym"}>
         <SignInCard title={s.title} subtitle={s.subtitle} />
       </AuthLayout>
     );

@@ -904,3 +904,149 @@
     transform: translateY(-8px);
   }
 }
+
+/* ---------- Phones: the sign-in fits one screen, no scrolling ----------
+ * Big heading in the black hero, the sign-in card under it; the feature list is left to desktop. */
+@media (max-width: 1023px) {
+  .auth {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .auth__brand {
+    flex: 1;
+    justify-content: space-between;
+    min-height: 0;
+    padding-bottom: var(--space-6);
+  }
+  .auth__pitch {
+    margin-top: auto;
+  }
+  .auth__pitch h1 {
+    font-size: clamp(40px, 7.4vh, 64px);
+    overflow-wrap: anywhere;
+  }
+  .auth__text {
+    font-size: var(--text-base);
+  }
+  .auth__panel {
+    flex: 0 0 auto;
+    padding-top: var(--space-5);
+  }
+  .auth__points--phone,
+  .auth__foot--phone {
+    display: none !important;
+  }
+  .auth__card .signin {
+    box-shadow: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+  .auth__card .signin__title {
+    font-size: 22px;
+  }
+}
+.auth__powered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Phones: the space above the heading holds a big floating mark (or the gym's initials). */
+.auth__phone-art {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .auth__phone-art {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: var(--space-4) 0;
+  }
+  .auth__phone-art img,
+  .auth__monogram {
+    width: min(42vw, 26vh);
+    height: min(42vw, 26vh);
+    border-radius: 24%;
+    transform: rotate(-8deg);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      0 0 80px rgba(255, 90, 31, 0.35);
+    animation: art-float 5s ease-in-out infinite;
+  }
+  .auth__monogram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-display);
+    font-stretch: 70%;
+    font-weight: 900;
+    font-size: min(18vw, 11vh);
+    letter-spacing: -0.02em;
+  }
+  .auth__pitch {
+    margin-top: 0;
+  }
+}
+@keyframes art-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+/* Selling-point chips under the headline */
+.auth__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.auth__chips li {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+.auth__text {
+  font-weight: 600;
+  color: #fff !important;
+}
+@media (max-width: 1023px) {
+  /* The headline already says GYMDESK, so the small logo row is only for gym pages. */
+  .auth__logo--desktop {
+    display: none;
+  }
+  .auth__phone-art img,
+  .auth__monogram {
+    width: clamp(72px, 19vh, 168px);
+    height: clamp(72px, 19vh, 168px);
+  }
+  .auth__monogram {
+    font-size: clamp(30px, 8vh, 72px);
+  }
+  .auth__pitch h1 {
+    font-size: clamp(44px, 9vh, 76px);
+  }
+  .auth__text {
+    font-size: var(--text-lg);
+  }
+}

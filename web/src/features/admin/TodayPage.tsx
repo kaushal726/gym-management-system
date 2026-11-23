@@ -1,5 +1,8 @@
-/* Today: the four numbers that matter, what's waiting at the desk, who expires this week and today's cash. */
-import { FiAlertTriangle, FiCheckCircle, FiClock, FiInbox, FiPhoneCall, FiUsers } from "react-icons/fi";
+/* Today: the staff home. Built like a phone app home: a bold hero with the day's headline numbers, quick
+ * actions as round tiles, then what needs attention (waiting at the desk, expiring this week) and, for the
+ * owner, today's collection. On desktop the same blocks sit in two columns. */
+import { useState } from "react";
+import { FiAlertTriangle, FiCheckCircle, FiCheckSquare, FiClock, FiGrid, FiInbox, FiLayers, FiPhoneCall, FiUsers } from "react-icons/fi";
 import type { Dashboard } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatDate } from "../../lib/format.ts";
@@ -9,186 +12,225 @@ import { useSession } from "../../lib/session.tsx";
 import { MODE_LABEL } from "../../lib/states.ts";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/Feedback.tsx";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
-import { useAdmin } from "./AdminShell.tsx";
-import { RupeeIcon } from "../../components/ui/RupeeIcon.tsx";
 import { CountUp } from "../../components/ui/CountUp.tsx";
+import { RupeeIcon } from "../../components/ui/RupeeIcon.tsx";
+import { useAdmin } from "./AdminShell.tsx";
 import { MemberRow } from "./MemberRow.tsx";
 
-function Stat({ href, label, value, hint, icon, tone }: { href: string; label: string; value: React.ReactNode; hint?: string; icon: React.ReactNode; tone?: string }) {
-  return (
-    <Link href={href} className="stat">
-      <span className="stat__label">
-        {icon}
-        {label}
-      </span>
-      <span className="stat__value" style={tone ? { color: tone } : undefined}>
-        {value}
-      </span>
-      {hint && <span className="stat__hint">{hint}</span>}
-    </Link>
-  );
-}
+type AttentionTab = "waiting" | "expiring";
 
 function greeting(): string {
   const hour = new Date().getHours();
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
+function QuickAction({ href, label, icon, badge, external }: { href: string; label: string; icon: React.ReactNode; badge?: number; external?: boolean }) {
+  const inner = (
+    <>
+      <span className="quick__icon" aria-hidden>
+        {icon}
+        {badge ? <span className="quick__badge">{badge > 99 ? "99+" : badge}</span> : null}
+      </span>
+      <span className="quick__label">{label}</span>
+    </>
+  );
+  return external ? (
+    <a className="quick" href={href} target="_blank" rel="noopener noreferrer">
+      {inner}
+    </a>
+  ) : (
+    <Link className="quick" href={href}>
+      {inner}
+    </Link>
+  );
+}
+
+function Metric({ href, label, value, tone, icon }: { href: string; label: string; value: React.ReactNode; tone?: "warning"; icon: React.ReactNode }) {
+  return (
+    <Link href={href} className={`metric${tone ? ` metric--${tone}` : ""}`}>
+      <span className="metric__icon" aria-hidden>
+        {icon}
+      </span>
+      <span className="metric__value">{value}</span>
+      <span className="metric__label">{label}</span>
+    </Link>
+  );
+}
+
 export function TodayPage() {
   const { gymId, base, gym, isOwner } = useAdmin();
   const { session } = useSession();
   const { data, error, loading, reload } = useApi<Dashboard>(`/gyms/${gymId}/dashboard`);
+  const [tab, setTab] = useState<AttentionTab>("waiting");
+  const first = session?.user?.name.split(" ")[0] ?? "there";
+
+  if (error && !data) {
+    return (
+      <div className="page">
+        <ErrorState message={error.message} onRetry={reload} />
+      </div>
+    );
+  }
 
   return (
-    <div className="page">
-      <section className="hero-card enter">
-        <div className="hero-card__text">
+    <div className="page today">
+      <section className="hero-card today__hero enter">
+        <div>
           <p className="hero-card__eyebrow">{data ? formatDate(data.today) : " "}</p>
           <h1>
-            {greeting()}, <em>{session?.user?.name.split(" ")[0] ?? "there"}</em>
+            {greeting()}, <em>{first}</em>
           </h1>
-          {isOwner && data?.collectionToday ? (
-            <p className="hero-card__sub">
-              <CountUp value={data.collectionToday.totalPaise} format={formatRupees} /> collected today
-            </p>
-          ) : (
-            <p className="hero-card__sub">{data ? `${data.counts.active} active members · ${data.counts.pending} waiting at the desk` : gym.name}</p>
-          )}
         </div>
+        {loading && !data ? (
+          <Skeleton height={56} radius={12} style={{ opacity: 0.2 }} />
+        ) : (
+          data && (
+            <>
+              {isOwner && data.collectionToday && (
+                <div className="today__headline">
+                  <span className="today__big">
+                    <CountUp value={data.collectionToday.totalPaise} format={formatRupees} />
+                  </span>
+                  <span className="today__big-label">collected today · {data.collectionToday.count} payments</span>
+                </div>
+              )}
+              <div className="today__strip">
+                <Link href={`${base}/members?filter=active`}>
+                  <strong>
+                    <CountUp value={data.counts.active} />
+                  </strong>
+                  <span>Active</span>
+                </Link>
+                <Link href={`${base}/members?filter=expiring`}>
+                  <strong className={data.counts.expiringSoon ? "is-hot" : undefined}>
+                    <CountUp value={data.counts.expiringSoon} />
+                  </strong>
+                  <span>Expiring</span>
+                </Link>
+                <Link href={`${base}/members?filter=dues`}>
+                  <strong className={data.duesTotalPaise ? "is-hot" : undefined}>
+                    <CountUp value={data.duesTotalPaise} format={formatRupees} />
+                  </strong>
+                  <span>Dues</span>
+                </Link>
+              </div>
+            </>
+          )
+        )}
       </section>
+
+      <nav className="quick-row enter-stagger" aria-label="Quick actions">
+        <QuickAction href={`${base}/followups`} label="Follow-ups" icon={<FiPhoneCall />} badge={data?.counts.openFollowups} />
+        <QuickAction href={`${base}/members`} label="Members" icon={<FiUsers />} />
+        {gym.checkinEnabled ? (
+          <QuickAction href={`${base}/checkins`} label="Check-in" icon={<FiCheckSquare />} badge={data?.counts.checkinsToday} />
+        ) : (
+          <QuickAction href={`${base}/plans`} label="Plans" icon={<FiLayers />} />
+        )}
+        <QuickAction href={`/poster/${gym.slug}`} label="Gym QR" icon={<FiGrid />} external />
+      </nav>
 
       <InstallBanner text="Keep the desk one tap away on your phone." />
 
-      {error && !data ? (
-        <ErrorState message={error.message} onRetry={reload} />
-      ) : loading && !data ? (
-        <div className="stats">
-          {[0, 1, 2, 3].map((i) => (
-            <div className="stat" key={i}>
-              <Skeleton width="60%" height={14} />
-              <Skeleton width="40%" height={34} style={{ marginTop: 6 }} />
-            </div>
-          ))}
+      {loading && !data ? (
+        <div className="card card--pad" style={{ display: "grid", gap: 12 }}>
+          <Skeleton height={40} />
+          <Skeleton height={56} />
+          <Skeleton height={56} />
         </div>
       ) : (
         data && (
-          <>
-            <div className="stats enter-stagger">
-              <Stat href={`${base}/members?filter=active`} label="Active" value={<CountUp value={data.counts.active} />} hint={data.counts.frozen ? `${data.counts.frozen} frozen` : undefined} icon={<FiUsers />} />
-              <Stat href={`${base}/members?filter=expiring`} label="Expiring in 7 days" value={<CountUp value={data.counts.expiringSoon} />} icon={<FiClock />} tone={data.counts.expiringSoon ? "var(--warning)" : undefined} />
-              <Stat
-                href={`${base}/members?filter=grace`}
-                label="In grace"
-                value={<CountUp value={data.counts.grace} />}
-                hint={`${data.counts.expired} expired`}
-                icon={<FiAlertTriangle />}
-                tone={data.counts.grace ? "var(--warning)" : undefined}
-              />
-              <Stat href={`${base}/members?filter=dues`} label="Dues" value={<CountUp value={data.duesTotalPaise} format={formatRupees} />} hint={`${data.counts.withDues} members`} icon={<RupeeIcon />} tone={data.duesTotalPaise ? "var(--warning)" : undefined} />
-            </div>
-
-            <div className="two-col">
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <section className="section">
-                  <div className="section__head">
-                    <span className="section__title">Waiting at the desk · {data.counts.pending}</span>
-                    {data.counts.pending > data.pending.length && <Link href={`${base}/members?filter=pending`}>See all</Link>}
-                  </div>
-                  <div className="card">
-                    {data.pending.length === 0 ? (
+          <div className="two-col">
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <section className="section">
+                <div className="section__head">
+                  <span className="section__title">Needs attention</span>
+                </div>
+                <div className="segmented" role="tablist" aria-label="Needs attention">
+                  <button type="button" role="tab" aria-selected={tab === "waiting"} aria-pressed={tab === "waiting"} onClick={() => setTab("waiting")}>
+                    Waiting · {data.counts.pending}
+                  </button>
+                  <button type="button" role="tab" aria-selected={tab === "expiring"} aria-pressed={tab === "expiring"} onClick={() => setTab("expiring")}>
+                    Expiring · {data.counts.expiringSoon}
+                  </button>
+                </div>
+                <div className="card" key={tab}>
+                  {tab === "waiting" ? (
+                    data.pending.length === 0 ? (
                       <EmptyState icon={<FiInbox />} title="No one waiting" text="New sign-ups from the QR code show up here." />
                     ) : (
-                      <div className="list">
+                      <div className="list enter-stagger">
                         {data.pending.map((m) => (
                           <MemberRow key={m.id} member={m} href={`${base}/members/${m.id}`} />
                         ))}
                       </div>
-                    )}
-                  </div>
-                </section>
-
-                <section className="section">
-                  <div className="section__head">
-                    <span className="section__title">Expiring this week · {data.counts.expiringSoon}</span>
-                    {data.counts.expiringSoon > data.expiringSoon.length && <Link href={`${base}/members?filter=expiring`}>See all</Link>}
-                  </div>
-                  <div className="card">
-                    {data.expiringSoon.length === 0 ? (
-                      <EmptyState icon={<FiCheckCircle />} title="Nothing expiring" text="Members whose plan ends in the next 7 days show up here." />
-                    ) : (
-                      <div className="list">
-                        {data.expiringSoon.map((m) => (
-                          <MemberRow key={m.id} member={m} href={`${base}/members/${m.id}`} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <Link href={`${base}/followups`} className="stat" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <span className="state-box__icon" style={{ width: 40, height: 40, background: "var(--accent-soft)", color: "var(--accent-soft-text)" }} aria-hidden>
-                    <FiPhoneCall />
-                  </span>
-                  <span style={{ flex: 1 }}>
-                    <span style={{ display: "block", fontWeight: 650 }}>Follow-ups</span>
-                    <span className="stat__hint">Renewals and dues to call or WhatsApp</span>
-                  </span>
-                  <span className="stat__value" style={{ fontSize: 28 }}>
-                    {data.counts.openFollowups}
-                  </span>
-                </Link>
-
-                {gym.checkinEnabled && (
-                  <Link href={`${base}/checkins`} className="stat" style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <span className="state-box__icon" style={{ width: 40, height: 40 }} aria-hidden>
-                      <FiCheckCircle />
-                    </span>
-                    <span style={{ flex: 1, fontWeight: 650 }}>Check-ins today</span>
-                    <span className="stat__value" style={{ fontSize: 28 }}>
-                      {data.counts.checkinsToday}
-                    </span>
+                    )
+                  ) : data.expiringSoon.length === 0 ? (
+                    <EmptyState icon={<FiCheckCircle />} title="Nothing expiring" text="Members whose plan ends in the next 7 days show up here." />
+                  ) : (
+                    <div className="list enter-stagger">
+                      {data.expiringSoon.map((m) => (
+                        <MemberRow key={m.id} member={m} href={`${base}/members/${m.id}`} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {(tab === "waiting" ? data.counts.pending > data.pending.length : data.counts.expiringSoon > data.expiringSoon.length) && (
+                  <Link href={`${base}/members?filter=${tab === "waiting" ? "pending" : "expiring"}`} className="see-all">
+                    See all
                   </Link>
                 )}
+              </section>
 
-                {isOwner && data.collectionToday && (
-                  <section className="card card--pad" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <span className="section__title">Collected today</span>
-                      <span className="muted" style={{ fontSize: 13 }}>
-                        Month {formatRupees(data.collectionMonthPaise ?? 0)}
-                      </span>
-                    </div>
-                    <span className="stat__value"><CountUp value={data.collectionToday.totalPaise} format={formatRupees} /></span>
+              <div className="metrics">
+                <Metric href={`${base}/members?filter=grace`} label="In grace" value={<CountUp value={data.counts.grace} />} tone={data.counts.grace ? "warning" : undefined} icon={<FiAlertTriangle />} />
+                <Metric href={`${base}/members?filter=expired`} label="Expired" value={<CountUp value={data.counts.expired} />} icon={<FiClock />} />
+                <Metric href={`${base}/members?filter=dues`} label="With dues" value={<CountUp value={data.counts.withDues} />} tone={data.counts.withDues ? "warning" : undefined} icon={<RupeeIcon />} />
+              </div>
+            </div>
+
+            {isOwner && data.collectionToday && (
+              <section className="card card--pad" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span className="section__title">Collected today</span>
+                  <span className="muted" style={{ fontSize: 13 }}>
+                    This month {formatRupees(data.collectionMonthPaise ?? 0)}
+                  </span>
+                </div>
+                <span className="stat__value">{formatRupees(data.collectionToday.totalPaise)}</span>
+                <div className="mode-bars">
+                  {(Object.keys(MODE_LABEL) as (keyof typeof MODE_LABEL)[]).map((m) => {
+                    const amount = data.collectionToday!.byMode[m];
+                    const share = data.collectionToday!.totalPaise ? amount / data.collectionToday!.totalPaise : 0;
+                    return (
+                      <div key={m} className="mode-bar">
+                        <span className="mode-bar__label">{MODE_LABEL[m]}</span>
+                        <span className="mode-bar__track">
+                          <span className="mode-bar__fill" style={{ width: `${Math.round(share * 100)}%` }} />
+                        </span>
+                        <span className="mode-bar__value tabular">{formatRupees(amount)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {data.collectionToday.byStaff.length > 0 && (
+                  <>
+                    <hr className="divider" />
                     <dl className="kv">
-                      {(Object.keys(MODE_LABEL) as (keyof typeof MODE_LABEL)[]).map((m) => (
-                        <div key={m} style={{ display: "contents" }}>
-                          <dt>{MODE_LABEL[m]}</dt>
-                          <dd className="tabular">{formatRupees(data.collectionToday!.byMode[m])}</dd>
+                      {data.collectionToday.byStaff.map((s) => (
+                        <div key={s.name} style={{ display: "contents" }}>
+                          <dt>{s.name}</dt>
+                          <dd className="tabular">
+                            {formatRupees(s.totalPaise)} · {s.count}
+                          </dd>
                         </div>
                       ))}
                     </dl>
-                    {data.collectionToday.byStaff.length > 0 && (
-                      <>
-                        <hr className="divider" />
-                        <dl className="kv">
-                          {data.collectionToday.byStaff.map((s) => (
-                            <div key={s.name} style={{ display: "contents" }}>
-                              <dt>{s.name}</dt>
-                              <dd className="tabular">
-                                {formatRupees(s.totalPaise)} · {s.count}
-                              </dd>
-                            </div>
-                          ))}
-                        </dl>
-                      </>
-                    )}
-                  </section>
+                  </>
                 )}
-              </div>
-            </div>
-          </>
+              </section>
+            )}
+          </div>
         )
       )}
     </div>

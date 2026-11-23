@@ -11,6 +11,7 @@ import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { Button } from "../../components/ui/Button.tsx";
 import { AuthLayout } from "../../components/layout/AuthLayout.tsx";
 import { MEMBER_POINTS } from "../auth/authPoints.tsx";
+import { initials } from "../../lib/format.ts";
 import { RegisterForm } from "./RegisterForm.tsx";
 import { CheckinPanel } from "./CheckinPanel.tsx";
 
@@ -52,7 +53,15 @@ export function JoinPage({ slug }: { slug: string }) {
   const { gym, member } = entry.data;
   if (!session?.user) {
     return (
-      <AuthLayout preview="member" eyebrow={gym.address ?? undefined} heading={`Welcome to ${gym.name}`} text="Join in a minute, see your plan and get renewal reminders on your phone." points={MEMBER_POINTS}>
+      <AuthLayout
+        preview="member"
+        eyebrow={gym.address ? `Welcome to · ${gym.address}` : "Welcome to"}
+        heading={<em>{gym.name}</em>}
+        text="Join, check in and see your plan right here."
+        points={MEMBER_POINTS}
+        poweredBy
+        monogram={initials(gym.name)}
+      >
         <SignInCard title="Continue with Google" subtitle="New here or already a member, start by signing in." />
       </AuthLayout>
     );
