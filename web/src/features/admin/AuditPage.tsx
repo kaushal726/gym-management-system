@@ -40,6 +40,13 @@ const ACTION_LABEL: Record<string, string> = {
   STAFF_INVITE: "Staff invited",
   STAFF_EDIT: "Staff access changed",
   STAFF_REMOVE: "Staff removed",
+  PLATFORM_BILLING: "GymDesk plan renewed",
+  PLATFORM_GYM_EDIT: "Gym details edited by GymDesk",
+  PLATFORM_OWNER_CHANGE: "Gym owner changed by GymDesk",
+  PLATFORM_GYM_PAUSE: "Gym paused by GymDesk",
+  PLATFORM_GYM_RESUME: "Gym resumed by GymDesk",
+  PLATFORM_GYM_ARCHIVE: "Gym closed by GymDesk",
+  PLATFORM_GYM_RESTORE: "Gym restored by GymDesk",
 };
 
 const SENSITIVE = new Set(["PAYMENT_VOID", "PAYMENT_REFUND", "SUB_CANCEL", "SUB_EDIT", "MEMBER_UNLINK", "MEMBER_ANONYMISE", "STAFF_REMOVE", "MEMBER_PHONE_EDIT"]);
