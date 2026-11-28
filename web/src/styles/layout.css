@@ -885,7 +885,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, rgba(14, 14, 16, 0) 0%, rgba(14, 14, 16, 0.2) 30%, rgba(14, 14, 16, 0.78) 68%, rgba(14, 14, 16, 0.97) 100%);
+  background: linear-gradient(180deg, rgba(14, 14, 16, 0.18) 0%, rgba(14, 14, 16, 0.3) 30%, rgba(14, 14, 16, 0.78) 68%, rgba(14, 14, 16, 0.97) 100%);
 }
 /* Behind every gym hero the same global photos take turns. A photo stays perfectly still while it is
  * shown; it only moves when it changes: the next one settles in (fading in from a very slightly bigger size) while the one

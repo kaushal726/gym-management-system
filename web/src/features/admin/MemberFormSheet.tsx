@@ -15,7 +15,7 @@ function emptyForm(m?: MemberProfile | null) {
   return {
     name: m?.name ?? "",
     phone: m?.phone ?? "",
-    email: m?.inviteEmail ?? "",
+    email: m?.inviteEmail ?? m?.linkedEmail ?? "",
     dob: m?.dob ?? "",
     gender: (m?.gender ?? "") as Gender | "",
     batch: (m?.batch ?? "") as Batch | "",

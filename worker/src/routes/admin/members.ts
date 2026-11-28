@@ -150,8 +150,9 @@ memberRoutes.patch("/members/:memberId", async (c) => {
     );
   }
   // A linked app keeps its Gmail; changing it would look saved but never work, so unlink first.
-  if (member.user_id && input.email !== member.invite_email) throw new ApiError(409, "This member's app is linked. Unlink it first to change the Gmail.", "email");
-  if (input.email && input.email !== member.invite_email) await assertEmailFree(c.env.DB, gym.id, input.email, member.id);
+  const currentEmail = member.invite_email ?? member.linked_email?.toLowerCase() ?? null;
+  if (member.user_id && input.email !== currentEmail) throw new ApiError(409, "This member's app is linked. Unlink it first to change the Gmail.", "email");
+  if (input.email && input.email !== currentEmail) await assertEmailFree(c.env.DB, gym.id, input.email, member.id);
   // A member already linked to a Google account keeps that link; otherwise link now if this email has signed in before.
   const linkUserId = member.user_id ?? (await linkableUserId(c.env.DB, gym.id, input.email));
   const before = toMemberProfile(member);
