@@ -98,7 +98,7 @@ export function GymOverviewPage({ gymId }: { gymId: string }) {
         </div>
       </section>
 
-      <div className="stats enter-stagger">
+      <div className="stats stats--5 enter-stagger">
         <Tile label="In grace" value={counts.grace} hot={counts.grace > 0} />
         <Tile label="Expired" value={counts.expired} hot={counts.expired > 0} />
         <Tile label="Frozen" value={counts.frozen} />

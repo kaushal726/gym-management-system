@@ -106,7 +106,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         </div>
       </div>
 
-      <div className="stats enter-stagger">
+      <div className="stats stats--2 enter-stagger">
         <div className="stat">
           <span className="stat__label">Active members</span>
           <span className="stat__value">{gym.activeMembers}</span>
