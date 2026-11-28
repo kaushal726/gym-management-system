@@ -8,6 +8,7 @@ import { useSession } from "../../lib/session.tsx";
 import { BrandMark } from "../ui/Brand.tsx";
 import { Button, IconButton } from "../ui/Button.tsx";
 import { Avatar } from "../ui/Feedback.tsx";
+import { MadeBy } from "../ui/MadeBy.tsx";
 import { Sheet } from "../ui/Sheet.tsx";
 
 /** Phones show this many places as tabs, then the Account tab. */
@@ -35,7 +36,17 @@ function usePlaces(): Place[] {
   return places.length === 1 ? places : [home, ...places];
 }
 
-export function NarrowLayout({ title, subtitle, children, actions, wide }: { title: string; subtitle?: string; children: ReactNode; actions?: ReactNode; wide?: boolean }) {
+interface NarrowLayoutProps {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  actions?: ReactNode;
+  wide?: boolean;
+  /** A welcome block at the very top. When given there is no header bar: the hero is the top of the page. */
+  hero?: ReactNode;
+}
+
+export function NarrowLayout({ title, subtitle, children, actions, wide, hero }: NarrowLayoutProps) {
   const { session, signOut } = useSession();
   const path = usePath();
   const places = usePlaces();
@@ -79,18 +90,22 @@ export function NarrowLayout({ title, subtitle, children, actions, wide }: { tit
       )}
 
       <div className="shell__main">
-        <header className={user ? "topbar topbar--mobile" : "topbar"}>
-          <BrandMark size={32} />
-          <span className="topbar__center">
-            <span className="topbar__title">{title}</span>
-            {subtitle && <span className="topbar__sub">{subtitle}</span>}
-          </span>
-        </header>
+        {!hero && (
+          <header className={user ? "topbar topbar--mobile" : "topbar"}>
+            <BrandMark size={32} />
+            <span className="topbar__center">
+              <span className="topbar__title">{title}</span>
+              {subtitle && <span className="topbar__sub">{subtitle}</span>}
+            </span>
+          </header>
+        )}
         <div className={user ? "shell__scroll" : "shell__scroll shell__scroll--plain"}>
+          {hero}
           <main className={wide ? "narrow__body narrow__body--wide" : "narrow__body"}>
             {actions && <div className="narrow__tools">{actions}</div>}
             {children}
           </main>
+          <MadeBy />
         </div>
         {user && (
           <nav className="bottom-nav" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, 1fr)` }}>

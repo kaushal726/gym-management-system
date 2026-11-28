@@ -60,6 +60,8 @@ export interface PublicGym {
   address: string | null;
   checkinEnabled: boolean;
   checkinNeedsLocation: boolean;
+  /** The batches this gym runs. */
+  batches: Batch[];
   /** False while the gym is paused or archived: no sign-ups or check-ins. */
   open: boolean;
 }
@@ -97,6 +99,7 @@ export interface GymSettings {
   checkinLng: number | null;
   checkinRadiusM: number | null;
   reminderHour: number;
+  batches: Batch[];
 }
 
 export interface Plan {
@@ -434,6 +437,19 @@ export interface PlatformGymDetail {
   gym: PlatformGym & { phone: string | null; address: string | null; statusReason: string | null; statusChangedAt: string | null };
   staff: (StaffEntry & { lastLoginAt: string | null })[];
   billing: GymBillingEntry[];
+}
+
+/** What the platform admin sees at the top of a gym's owner's view: its numbers, plans and settings. The member list is a separate call. */
+export interface GymOverview {
+  today: IsoDate;
+  counts: { active: number; expiringSoon: number; grace: number; expired: number; frozen: number; pending: number; withDues: number };
+  duesTotalPaise: Paise;
+  collectedTodayPaise: Paise;
+  collectedMonthPaise: Paise;
+  /** Today's collection by how it was paid. */
+  collectedTodayByMode: Record<PaymentMode, Paise>;
+  plans: Plan[];
+  settings: GymSettings;
 }
 
 export interface GymBillingInput {

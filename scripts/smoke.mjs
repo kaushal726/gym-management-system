@@ -223,9 +223,12 @@ r = await copycat.post(`/api/public/gyms/${slug}/checkin`, {});
 ok(r.status === 403, "a non-member cannot check in");
 
 // Desk-added member and the claim link
-r = await manager.post(`${G}/members`, { name: "Asha Verma", phone: phone(3), dob: null, gender: "FEMALE", emergencyName: null, emergencyPhone: null, guardianName: null, guardianPhone: null });
+r = await manager.post(`${G}/members`, { email: `auto1-${RUN}@gymdesk.test`, name: "Asha Verma", phone: phone(3), dob: null, gender: "FEMALE", emergencyName: null, emergencyPhone: null, guardianName: null, guardianPhone: null });
 ok(r.status === 201, "manager adds a walk-in at the desk");
 const ashaId = r.body.id;
+// Members added before the Gmail became required have none; the claim link is how they get an app login.
+r = await manager.patch(`${G}/members/${ashaId}`, { name: "Asha Verma", phone: phone(3), email: null });
+ok(r.status === 200, "an older member with no Gmail on record");
 r = await manager.post(`${G}/members/${ashaId}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: { amountPaise: 150000, mode: "CASH", note: null } });
 ok(r.status === 201, "walk-in is activated");
 r = await manager.post(`${G}/members/${ashaId}/claim-link`, {});
@@ -246,7 +249,7 @@ r = await admin.post(`/api/dev/cron?date=${day}`);
 ok(r.status === 200, "cron runs for a chosen date", r.body);
 r = await owner.get(`${G}/followups`);
 const ex = r.body.items.filter((f) => f.member.id === raviId && f.type === "EXPIRY_M5");
-ok(ex.length === 1 && ex[0].message.includes("ends on"), "follow-up list has the 5-day expiry reminder with its message", r.body.items);
+ok(ex.length === 1 && ex[0].message.includes("5 din") && ex[0].message.includes("*Quarterly* plan") && ex[0].message.includes("Team "), "follow-up list has the 5-day expiry reminder with the friendly renewal message", r.body.items);
 r = await admin.post(`/api/dev/cron?date=${day}`);
 ok(r.body.daily.find((d) => d.gymId === gymId)?.skipped === true, "second run the same day is skipped");
 r = await owner.get(`${G}/followups`);
@@ -268,7 +271,7 @@ r = await trainer.get(`${G}/members/${raviId}`);
 ok(r.status === 200 && Array.isArray(r.body.payments) && typeof r.body.duesTotalPaise === "number", "trainer sees a member's fees and payments");
 r = await trainer.get(`${G}/dashboard`);
 ok(r.status === 200 && r.body.collectionToday === null && r.body.collectionMonthPaise === null, "trainer dashboard has no sales");
-r = await trainer.post(`${G}/members`, { name: "Trainer Walkin", phone: phone(4), dob: null, gender: null, emergencyName: null, emergencyPhone: null, guardianName: null, guardianPhone: null });
+r = await trainer.post(`${G}/members`, { email: `auto2-${RUN}@gymdesk.test`, name: "Trainer Walkin", phone: phone(4), dob: null, gender: null, emergencyName: null, emergencyPhone: null, guardianName: null, guardianPhone: null });
 ok(r.status === 201, "trainer adds a new member");
 const walkinId = r.body.id;
 r = await trainer.post(`${G}/members/${walkinId}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: { amountPaise: 50000, mode: "CASH", note: null } });
@@ -307,6 +310,21 @@ r = await admin.get(`/api/platform/gyms/${gymId}`);
 ok(r.status === 200 && r.body.gym.members >= 2 && r.body.gym.activeMembers >= 1 && r.body.gym.ownerEmail === `owner-${RUN}@gymdesk.test`, "platform sees the gym's health", r.body.gym);
 ok(!JSON.stringify(r.body.gym).match(/due|collect|revenue/i), "platform gym summary carries no member money");
 const P = `/api/platform/gyms/${gymId}`;
+r = await admin.get(`${P}/overview`);
+ok(r.status === 200 && r.body.counts.active >= 1 && Array.isArray(r.body.plans) && r.body.settings.name === "Iron Paradise" && typeof r.body.collectedMonthPaise === "number", "platform admin gets the gym's numbers, plans and settings (owner's view)", r.body);
+ok(!/Ravi|Asha|Copy Cat|Sharma|Verma|ravi-|asha-|copy-/i.test(JSON.stringify(r.body)), "the owner's view summary itself carries no member name, phone or email", r.body);
+r = await admin.get(`${P}/members`);
+ok(r.status === 200 && r.body.counts.all >= 2 && r.body.items.some((m) => m.name === "Ravi Sharma"), "platform admin sees the gym's member list (read-only)", r.body.counts);
+r = await admin.get(`${P}/members?filter=active&q=ravi`);
+ok(r.status === 200 && r.body.items.every((m) => /ravi/i.test(m.name)), "the platform member list filters and searches like the owner's", r.body.items.length);
+r = await owner.get(`${P}/members`);
+ok(r.status === 403, "a gym owner cannot use the platform member list");
+r = await admin.post(`${P}/members`, {});
+ok(r.status === 404 || r.status === 405, "the platform member list is read-only (no POST)", r.status);
+r = await admin.get("/api/platform/gyms/no-such-gym/overview");
+ok(r.status === 404, "the owner's view of an unknown gym is 404");
+r = await admin.post(`${P}/overview`, {});
+ok(r.status === 404 || r.status === 405, "the owner's view is read-only (no POST)", r.status);
 r = await admin.post(`${P}/pause`, { reason: "Payment pending" });
 ok(r.status === 200, "platform pauses the gym");
 r = await owner.get(`${G}/dashboard`);
@@ -377,7 +395,7 @@ const gymCalls = [
   ["PATCH", `/members/${raviId}`], ["PATCH", `/subscriptions/${memberSub}`], ["PATCH", "/settings"], ["PATCH", `/plans/${monthly}`], ["PATCH", `/staff/${encodeURIComponent(`newowner-${RUN}@gymdesk.test`)}`],
 ];
 const platformCalls = [
-  ["GET", "/gyms"], ["GET", `/gyms/${gymId}`], ["POST", "/gyms"], ["PATCH", `/gyms/${gymId}`], ["POST", `/gyms/${gymId}/pause`], ["POST", `/gyms/${gymId}/resume`],
+  ["GET", "/gyms"], ["GET", `/gyms/${gymId}`], ["GET", `/gyms/${gymId}/overview`], ["GET", `/gyms/${gymId}/members`], ["POST", "/gyms"], ["PATCH", `/gyms/${gymId}`], ["POST", `/gyms/${gymId}/pause`], ["POST", `/gyms/${gymId}/resume`],
   ["POST", `/gyms/${gymId}/archive`], ["POST", `/gyms/${gymId}/restore`], ["POST", `/gyms/${gymId}/owner`], ["POST", `/gyms/${gymId}/billing`], ["POST", "/signup-gym"],
 ];
 const call = (client, method, path) => client.call(method, path, method === "GET" ? undefined : { reason: "x", email: `random-${RUN}@gymdesk.test`, name: "x" });
@@ -414,7 +432,7 @@ r = await outsider.call("POST", "/api/auth/push/subscribe", { endpoint: "https:/
 ok(r.status === 200, "a user can only register push for themselves");
 r = await newOwner.get(`${G}/audit`);
 ok(r.body.items.length === auditBefore, "none of those attempts changed anything in the gym");
-const crossOrigin = await fetch(`${BASE}${G}/members`, { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: newOwner.cookie }, body: "{}" });
+const crossOrigin = await fetch(`${BASE}${G}/members`, { email: `auto3-${RUN}@gymdesk.test`, method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: newOwner.cookie }, body: "{}" });
 ok(crossOrigin.status === 403, "a request from another website is refused even with the owner's cookie");
 
 
@@ -452,7 +470,7 @@ r = await outsider.get(`/api/public/me/gyms/${gymId}`);
 ok(r.status === 404, "being a member at one gym opens nothing at another");
 
 // The owner edits a plan a member already took: plan, start date and price. Payments stay; dues follow.
-r = await newOwner.post(`${G}/members`, { name: "Edit Plan Person", phone: phone(911) });
+r = await newOwner.post(`${G}/members`, { email: `auto4-${RUN}@gymdesk.test`, name: "Edit Plan Person", phone: phone(911) });
 const editMemberId = r.body.id;
 r = await newOwner.post(`${G}/members/${editMemberId}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: { amountPaise: 100000, mode: "CASH", note: null } });
 ok(r.status === 201, "a member takes a monthly plan and pays part of it", r.body);
@@ -482,8 +500,9 @@ r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planI
 ok(r.status === 200 && r.body.endDate === addDays(editedSub.endDate, 3), "a frozen plan's price can still change and its end date stays", r.body);
 
 // Worst cases: claim links. Staff can't take them, two people can't both win one, a linked member can't be taken over.
-r = await newOwner.post(`${G}/members`, { name: "Claim Target", phone: phone(921) });
+r = await newOwner.post(`${G}/members`, { email: `auto5-${RUN}@gymdesk.test`, name: "Claim Target", phone: phone(921) });
 const claimTargetId = r.body.id;
+r = await newOwner.patch(`${G}/members/${claimTargetId}`, { name: "Claim Target", phone: phone(921), email: null });
 r = await newOwner.post(`${G}/members/${claimTargetId}/claim-link`, {});
 const raceToken = r.body.url.split("/claim/")[1];
 r = await newOwner.get(`/api/public/claim/${raceToken}`);
@@ -571,7 +590,7 @@ r = await newOwner.patch(`${G}/subscriptions/${editSubId}`, { ...editBase, planI
 ok(r.status === 400, "an impossible date is refused", r.body);
 r = await ownerB.patch(`${G2}/subscriptions/${editSubId}`, { ...editBase, planId: quarterly, finalPricePaise: 380000, startDate: addDays(today, 1) });
 ok(r.status === 404, "another gym's owner can't edit this plan through their own gym", r.body);
-r = await newOwner.post(`${G}/members`, { name: "Overlap Person", phone: phone(925) });
+r = await newOwner.post(`${G}/members`, { email: `auto6-${RUN}@gymdesk.test`, name: "Overlap Person", phone: phone(925) });
 const overlapMember = r.body.id;
 r = await newOwner.post(`${G}/members/${overlapMember}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 150000, discountReason: null, joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: null });
 const firstSub = r.body.subscriptionId;
@@ -598,7 +617,7 @@ ok(r.status === 200, "the member is archived", r.body);
 const archivedPerson = await new Client("Archived Person").login(archivedEmail);
 r = await archivedPerson.get("/api/auth/session");
 ok(!r.body.memberOf.some((m) => m.gymId === gymId), "an archived record is not linked on sign-in", r.body.memberOf);
-r = await newOwner.post(`${G}/members`, { name: "Discount Person", phone: phone(932) });
+r = await newOwner.post(`${G}/members`, { email: `auto7-${RUN}@gymdesk.test`, name: "Discount Person", phone: phone(932) });
 const discountMember = r.body.id;
 r = await newOwner.post(`${G}/members/${discountMember}/subscriptions`, { planId: monthly, startDate: today, finalPricePaise: 120000, discountReason: "Friend of owner", joiningFeePaise: 0, backdateReason: null, trainerName: null, payment: null });
 const discountSub = r.body.subscriptionId;
@@ -608,15 +627,15 @@ r = await newOwner.get(`${G}/members/${discountMember}`);
 ok(r.body.subscriptions.find((x) => x.id === discountSub).discountReason === "Friend of owner", "the original price note is kept", r.body.subscriptions);
 
 // Batch: the time of day a member trains, set at the desk or at QR sign-up.
-r = await newOwner.post(`${G}/members`, { name: "Batch Person", phone: phone(941), batch: "MORNING" });
+r = await newOwner.post(`${G}/members`, { email: `auto8-${RUN}@gymdesk.test`, name: "Batch Person", phone: phone(941), batch: "MORNING" });
 ok(r.status === 201, "the desk adds a member to the morning batch", r.body);
 const batchId = r.body.id;
 r = await newOwner.get(`${G}/members/${batchId}`);
 ok(r.body.member.batch === "MORNING", "the member shows the morning batch", r.body.member);
-r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: "NIGHT" });
-ok(r.status === 200, "the desk moves them to the night batch", r.body);
+r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: "EVENING" });
+ok(r.status === 200, "the desk moves them to the evening batch", r.body);
 r = await newOwner.get(`${G}/members?q=Batch%20Person`);
-ok(r.body.items.find((x) => x.id === batchId)?.batch === "NIGHT", "the member list shows the new batch", r.body.items);
+ok(r.body.items.find((x) => x.id === batchId)?.batch === "EVENING", "the member list shows the new batch", r.body.items);
 r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: "MIDNIGHT" });
 ok(r.status === 400 && r.body.field === "batch", "an unknown batch is refused", r.body);
 r = await newOwner.patch(`${G}/members/${batchId}`, { name: "Batch Person", phone: phone(941), batch: null });
@@ -628,4 +647,132 @@ ok(r.status === 201, "a person picks the evening batch at QR sign-up", r.body);
 const joinerId = r.body.memberId;
 r = await newOwner.get(`${G}/members/${joinerId}`);
 ok(r.body.member.batch === "EVENING", "the desk sees the evening batch on the sign-up", r.body.member);
+
+// Members edit their own basic details (never the Gmail); worst cases: other people, other gyms, bad input.
+const ME = `/api/public/me/gyms/${gymId}`;
+r = await asha.get(ME);
+const ashaBefore = r.body.member;
+const ashaEdit = { name: "Asha V. Verma", phone: ashaBefore.phone, dob: "1999-05-05", gender: "FEMALE", batch: "EVENING", emergencyName: "Mother", emergencyPhone: phone(960), guardianName: null, guardianPhone: null };
+r = await anon.call("PATCH", ME, ashaEdit);
+ok(r.status === 401, "signing in is needed to edit details", r.body);
+r = await outsider.call("PATCH", ME, ashaEdit);
+ok(r.status === 404, "a random Gmail can't edit anyone's details at this gym", r.body);
+r = await editManager.call("PATCH", ME, ashaEdit);
+ok(r.status === 404, "gym staff who aren't members can't use the member edit", r.body);
+r = await asha.call("PATCH", ME, ashaEdit);
+ok(r.status === 200, "a member edits her own details", r.body);
+r = await asha.get(ME);
+ok(r.body.member.name === "Asha V. Verma" && r.body.member.batch === "EVENING" && r.body.member.emergencyName === "Mother" && r.body.member.dob === "1999-05-05", "the new details show on her page", r.body.member);
+r = await newOwner.get(`${G}/members/${ashaBefore.id}`);
+ok(r.body.member.name === "Asha V. Verma" && r.body.phoneHistory.length === 0, "the desk sees them, and no phone change is recorded", r.body.member);
+r = await newOwner.get(`${G}/audit`);
+ok(r.body.items.some((x) => x.action === "MEMBER_SELF_EDIT" && x.entityId === ashaBefore.id && x.reason === "Changed by the member"), "her edit is in the audit log");
+r = await asha.call("PATCH", ME, { ...ashaEdit, email: `taken-${RUN}@gymdesk.test`, userId: "x", status: "REJECTED", gymId: "x" });
+ok(r.status === 200, "extra fields in the request are ignored", r.body);
+r = await newOwner.get(`${G}/members/${ashaBefore.id}`);
+ok(r.body.member.linkedEmail === `asha-${RUN}@gymdesk.test` && r.body.member.inviteEmail === null && r.body.member.status === ashaBefore.status, "her Gmail, link and status can't be changed this way", r.body.member);
+r = await asha.call("PATCH", ME, { ...ashaEdit, phone: phone(901) });
+ok(r.status === 409 && r.body.field === "phone", "she can't take a number another member here has", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, phone: "12345" });
+ok(r.status === 400 && r.body.field === "phone", "a bad mobile number is refused", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, name: "" });
+ok(r.status === 400 && r.body.field === "name", "an empty name is refused", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, batch: "MIDNIGHT" });
+ok(r.status === 400 && r.body.field === "batch", "an unknown batch is refused", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, dob: "2099-01-01" });
+ok(r.status === 400 && r.body.field === "dob", "a birthday in the future is refused", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, dob: addDays(today, -365 * 10) });
+ok(r.status === 400 && r.body.field === "guardianName", "a child needs a guardian", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, dob: addDays(today, -365 * 10), guardianName: "Father", guardianPhone: phone(961) });
+ok(r.status === 200, "a child with a guardian is accepted", r.body);
+r = await asha.call("PATCH", ME, { ...ashaEdit, batch: null, gender: null, emergencyName: null, emergencyPhone: null });
+ok(r.status === 200, "optional details can be cleared", r.body);
+const newPhone = phone(962);
+r = await asha.call("PATCH", ME, { ...ashaEdit, phone: newPhone, batch: null, gender: null, emergencyName: null, emergencyPhone: null });
+ok(r.status === 200, "a member changes her own mobile number", r.body);
+r = await newOwner.get(`${G}/members/${ashaBefore.id}`);
+ok(r.body.member.phone === newPhone && r.body.phoneHistory.length === 1 && r.body.phoneHistory[0].oldPhone === ashaBefore.phone, "the old number is kept in history", r.body.phoneHistory);
+r = await newOwner.get(`${G}/audit`);
+ok(r.body.items.some((x) => x.action === "MEMBER_PHONE_EDIT" && x.entityId === ashaBefore.id && x.reason === "Changed by the member"), "the number change is in the audit log for the owner to check");
+r = await newOwner.post(`${G}/members`, { email: `auto9-${RUN}@gymdesk.test`, name: "Number Taker", phone: ashaBefore.phone });
+ok(r.status === 201, "her old number is free for the desk to use again", r.body);
+r = await asha.call("PATCH", `/api/public/me/gyms/${otherGymId}`, ashaEdit);
+ok(r.status === 404, "being a member at one gym doesn't allow editing at another", r.body);
+r = await asha.call("PATCH", `${ME}x`, ashaEdit);
+ok(r.status === 404, "an unknown gym is a 404", r.status);
+r = await newOwner.post(`${G}/members/${joinerId}/reject`, { reason: "Duplicate" });
+r = await batchJoiner.call("PATCH", ME, { name: "Batch Joiner", phone: phone(942), batch: "MORNING" });
+ok(r.status === 409, "a rejected request can't be edited", r.body);
+const archEmail = `selfarch-${RUN}@gymdesk.test`;
+r = await newOwner.post(`${G}/members`, { name: "Self Archived", phone: phone(963), email: archEmail });
+const archId = r.body.id;
+const archPerson = await new Client("Self Archived").login(archEmail);
+r = await newOwner.post(`${G}/members/${archId}/archive`, { reason: "Left" });
+r = await archPerson.call("PATCH", ME, { name: "Self Archived", phone: phone(963) });
+ok(r.status === 409, "an archived member can't edit, the desk restores first", r.body);
+r = await newOwner.post(`${G}/members/${archId}/unarchive`, {});
+r = await archPerson.call("PATCH", ME, { name: "Self Archived", phone: phone(963), batch: "EVENING" });
+ok(r.status === 200, "after the desk restores them, they can edit again", r.body);
+r = await newOwner.post(`${G}/members/${archId}/unlink`, { reason: "Test" });
+r = await archPerson.call("PATCH", ME, { name: "Self Archived", phone: phone(963) });
+ok(r.status === 404, "after an unlink, the old Gmail can no longer edit", r.body);
+
+// The desk must give a Gmail for every member it adds, so they can sign in.
+r = await newOwner.post(`${G}/members`, { name: "No Gmail Person", phone: phone(971) });
+ok(r.status === 400 && r.body.field === "email", "the desk can't add a member without a Gmail", r.body);
+r = await newOwner.post(`${G}/members`, { name: "Blank Gmail", phone: phone(971), email: "   " });
+ok(r.status === 400 && r.body.field === "email", "a blank Gmail is refused too", r.body);
+r = await newOwner.post(`${G}/members`, { name: "With Gmail", phone: phone(971), email: `withmail-${RUN}@gymdesk.test` });
+ok(r.status === 201, "with a Gmail the member is added", r.body);
+r = await newOwner.patch(`${G}/members/${r.body.id}`, { name: "With Gmail", phone: phone(971), email: null });
+ok(r.status === 200, "editing an existing member doesn't force a Gmail (older members may have none)", r.body);
+
+// Batches: a gym runs morning and evening unless its owner turns more on; members keep one the gym no longer runs.
+r = await newOwner.get(`${G}/settings`);
+ok(JSON.stringify(r.body.batches) === JSON.stringify(["MORNING", "EVENING"]), "a gym runs a morning and an evening batch by default", r.body.batches);
+r = await ravi.get(`/api/public/gyms/${slug}-new`);
+ok(JSON.stringify(r.body.gym.batches) === JSON.stringify(["MORNING", "EVENING"]), "the public gym page offers only those two", r.body.gym.batches);
+const batchGymBase = { name: "Batch Gym Person", phone: phone(981), email: `batchgym-${RUN}@gymdesk.test` };
+r = await newOwner.post(`${G}/members`, { ...batchGymBase, batch: "NIGHT" });
+ok(r.status === 400 && r.body.field === "batch", "the desk can't add someone to a night batch the gym doesn't run", r.body);
+r = await newOwner.post(`${G}/members`, { ...batchGymBase, batch: "AFTERNOON" });
+ok(r.status === 400 && r.body.field === "batch", "nor an afternoon one", r.body);
+const lateJoiner = await new Client("Late Joiner").login(`latejoin-${RUN}@gymdesk.test`);
+r = await lateJoiner.post(`/api/public/gyms/${slug}-new/register`, { ...reg, name: "Late Joiner", phone: phone(982), batch: "NIGHT" });
+ok(r.status === 400 && r.body.field === "batch", "a QR sign-up can't pick a batch the gym doesn't run", r.body);
+r = await newOwner.get(`${G}/settings`);
+const settingsNow = r.body;
+const { id: _id, slug: _slug, ...settingsBody } = settingsNow;
+r = await newOwner.patch(`${G}/settings`, { ...settingsBody, batches: [] });
+ok(r.status === 400 && r.body.field === "batches", "a gym must run at least one batch", r.body);
+r = await newOwner.patch(`${G}/settings`, { ...settingsBody, batches: ["MORNING", "LUNCH"] });
+ok(r.status === 400 && r.body.field === "batches", "an unknown batch is refused", r.body);
+r = await newOwner.patch(`${G}/settings`, { ...settingsBody, batches: "MORNING" });
+ok(r.status === 400 && r.body.field === "batches", "batches must be a list", r.body);
+r = await newOwner.patch(`${G}/settings`, settingsBody);
+ok(r.status === 200, "saving settings without batches (an older page) keeps them", r.body);
+r = await newOwner.get(`${G}/settings`);
+ok(JSON.stringify(r.body.batches) === JSON.stringify(["MORNING", "EVENING"]), "they are still morning and evening", r.body.batches);
+r = await newOwner.patch(`${G}/settings`, { ...settingsBody, batches: ["NIGHT", "MORNING", "NIGHT"] });
+ok(r.status === 200, "the owner turns on night and drops evening, in any order, even with a repeat", r.body);
+r = await newOwner.get(`${G}/settings`);
+ok(JSON.stringify(r.body.batches) === JSON.stringify(["MORNING", "NIGHT"]), "they are kept once, morning to night", r.body.batches);
+r = await newOwner.post(`${G}/members`, { ...batchGymBase, batch: "NIGHT" });
+ok(r.status === 201, "now the desk can add a night member", r.body);
+const nightMemberId = r.body.id;
+r = await newOwner.post(`${G}/members`, { ...batchGymBase, name: "Evening Person", phone: phone(983), email: `evening-${RUN}@gymdesk.test`, batch: "EVENING" });
+ok(r.status === 400 && r.body.field === "batch", "and evening is refused while it is off", r.body);
+r = await newOwner.patch(`${G}/settings`, { ...settingsBody, batches: ["MORNING", "EVENING"] });
+ok(r.status === 200, "the owner goes back to morning and evening", r.body);
+r = await newOwner.patch(`${G}/members/${nightMemberId}`, { name: "Batch Gym Person", phone: phone(981), batch: "NIGHT" });
+ok(r.status === 200, "a member who has night keeps it when the desk edits other things", r.body);
+r = await newOwner.patch(`${G}/members/${nightMemberId}`, { name: "Batch Gym Person", phone: phone(981), batch: "AFTERNOON" });
+ok(r.status === 400 && r.body.field === "batch", "but can't be moved to another batch the gym doesn't run", r.body);
+r = await newOwner.patch(`${G}/members/${nightMemberId}`, { name: "Batch Gym Person", phone: phone(981), batch: "MORNING" });
+ok(r.status === 200, "or moved to one it does", r.body);
+r = await ownerB.patch(`${G2}/settings`, { ...settingsBody, batches: ["AFTERNOON"] });
+ok(r.status === 400 || r.status === 200, "another gym's owner only ever changes their own gym's batches", r.status);
+r = await newOwner.get(`${G}/settings`);
+ok(JSON.stringify(r.body.batches) === JSON.stringify(["MORNING", "EVENING"]), "so this gym's batches are untouched", r.body.batches);
+
 console.log(`\nAll ${checks} checks passed.`);

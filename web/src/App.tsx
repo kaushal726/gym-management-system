@@ -15,6 +15,7 @@ import { MemberPage } from "./features/member/MemberPage.tsx";
 
 const AdminApp = lazy(() => import("./features/admin/AdminApp.tsx"));
 const PlatformPage = lazy(() => import("./features/platform/PlatformPage.tsx").then((m) => ({ default: m.PlatformPage })));
+const GymOverviewPage = lazy(() => import("./features/platform/GymOverviewPage.tsx").then((m) => ({ default: m.GymOverviewPage })));
 const PlatformGymPage = lazy(() => import("./features/platform/PlatformGymPage.tsx").then((m) => ({ default: m.PlatformGymPage })));
 const NewGymPage = lazy(() => import("./features/platform/NewGymPage.tsx").then((m) => ({ default: m.NewGymPage })));
 
@@ -48,6 +49,7 @@ const ROUTES: RouteDef[] = [
   { pattern: "/me", guard: "member", render: () => <MemberPage /> },
   { pattern: "/me/:gymId", guard: "member", render: (p) => <MemberPage gymId={p.gymId} /> },
   { pattern: "/platform", guard: "platform", render: () => <PlatformPage /> },
+  { pattern: "/platform/gyms/:gymId/owner-view", guard: "platform", render: (p) => <GymOverviewPage gymId={p.gymId} /> },
   { pattern: "/platform/gyms/:gymId", guard: "platform", render: (p) => <PlatformGymPage gymId={p.gymId} /> },
   { pattern: "/new-gym", guard: "gymSignup", render: () => <NewGymPage /> },
   { pattern: "/admin/*", guard: "staff", render: (_p, path) => <AdminApp path={path} /> },

@@ -4,6 +4,7 @@ import { PiArrowLeftBold, PiArrowsClockwiseBold, PiCheckSquareBold, PiDotsThreeB
 import type { MemberDetail, Payment, Subscription } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { callLink, formatMobile, whatsappLink } from "../../../../shared/phone.ts";
+import { memberWhatsappText } from "../../../../shared/renewalMessage.ts";
 import { formatDate, formatDateTime } from "../../lib/format.ts";
 import { Link, navigate, useQueryParam } from "../../lib/router.tsx";
 import { STATUS_LABEL, STATUS_TONE } from "../../lib/states.ts";
@@ -29,7 +30,7 @@ type Open =
   | null;
 
 export function MemberDetailPage({ memberId }: { memberId: string }) {
-  const { gymId, base, isOwner } = useAdmin();
+  const { gymId, base, gym, isOwner } = useAdmin();
   const toast = useToast();
   const { data, error, loading, reload } = useApi<MemberDetail>(`/gyms/${gymId}/members/${memberId}`);
   const autoActivate = useQueryParam("activate") === "1";
@@ -131,7 +132,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
               )}
             </div>
             <div className="detail-actions__quick">
-              <ButtonLink href={whatsappLink(member.phone, `Hi ${member.name.split(" ")[0]},`)} external icon={<PiWhatsappLogoBold />}>
+              <ButtonLink href={whatsappLink(member.phone, memberWhatsappText(data.membership, { memberName: member.name, gymName: gym.name }))} external icon={<PiWhatsappLogoBold />}>
                 WhatsApp
               </ButtonLink>
               <ButtonLink href={callLink(member.phone)} external icon={<PiPhoneBold />}>
@@ -268,7 +269,7 @@ export function MemberDetailPage({ memberId }: { memberId: string }) {
         onAction={(action, sub) => setOpen({ kind: action, sub })}
       />
       <PaymentDetailSheet open={open?.kind === "payment"} payment={open?.kind === "payment" ? open.payment : null} gymId={gymId} isOwner={isOwner} onClose={close} onDone={done} />
-      <MemberFormSheet open={open?.kind === "edit"} gymId={gymId} today={data.today} member={member} onClose={close} onSaved={() => done("Details saved")} />
+      <MemberFormSheet open={open?.kind === "edit"} gymId={gymId} today={data.today} member={member} batches={gym.batches} onClose={close} onSaved={() => done("Details saved")} />
       <MemberMoreSheet open={open?.kind === "more"} detail={data} onClose={close} onDone={done} />
     </div>
   );

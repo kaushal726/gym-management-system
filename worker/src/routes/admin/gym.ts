@@ -1,17 +1,18 @@
 /* Gym-wide screens: today's dashboard, follow-ups, plans, settings, staff, audit log, reports and exports. */
 import { Hono } from "hono";
 import type { AuditEntry, CollectionSummary, CollectionsReport, Dashboard, Followup, GymSettings, Plan, StaffEntry } from "../../../../shared/api.ts";
-import { DEFAULT_CHECKIN_RADIUS_M, FOLLOWUP_LOOKBACK_DAYS, MAX_FREEZE_DAYS, MAX_GRACE_DAYS, PLAN_KINDS, TEAM_ROLES, type PaymentMode } from "../../../../shared/constants.ts";
+import { BATCHES, DEFAULT_CHECKIN_RADIUS_M, FOLLOWUP_LOOKBACK_DAYS, MAX_FREEZE_DAYS, MAX_GRACE_DAYS, PLAN_KINDS, TEAM_ROLES, parseBatches, type Batch, type PaymentMode } from "../../../../shared/constants.ts";
 import { addDays, isIsoDate, isValidTimeZone, todayIn } from "../../../../shared/dates.ts";
 import { matchesFilter } from "../../../../shared/filters.ts";
 import { MAX_AMOUNT_PAISE } from "../../../../shared/money.ts";
-import { REMINDER_LABEL, reminderMessage, type ReminderType } from "../../../../shared/reminders.ts";
+import { REMINDER_LABEL, type ReminderType } from "../../../../shared/reminders.ts";
+import { whatsappText } from "../../../../shared/renewalMessage.ts";
 import type { AppEnv } from "../../env.ts";
 import { currentStaff, currentUser, ownerOnly } from "../../auth/guards.ts";
 import { auditStatement } from "../../lib/audit.ts";
 import { ApiError, badInput, conflict, notFound } from "../../lib/http.ts";
 import { newId, nowIso } from "../../lib/ids.ts";
-import { asBody, bool, email, int, oneOf, optionalInt, optionalNum, optionalText, paise, text } from "../../lib/validate.ts";
+import { asBody, bool, email, int, oneOf, optionalInt, optionalNum, optionalText, paise, text, type Body } from "../../lib/validate.ts";
 import { loadRoster, paymentsBetween, toListItem } from "../../db/queries.ts";
 import { toGymSettings, toPayment, toPlan, type PlanRow } from "../../db/rows.ts";
 import { toCsv } from "../../lib/csv.ts";
@@ -24,7 +25,7 @@ const DASHBOARD_PREVIEW = 5;
 const AUDIT_PAGE = 50;
 const MAX_REPORT_DAYS = 370;
 
-function summarizeCollection(rows: { amount_paise: number; mode: PaymentMode; collected_by_name: string | null; voided_at: string | null }[]): CollectionSummary {
+export function summarizeCollection(rows: { amount_paise: number; mode: PaymentMode; collected_by_name: string | null; voided_at: string | null }[]): CollectionSummary {
   const byMode: Record<PaymentMode, number> = { CASH: 0, UPI: 0, CARD: 0 };
   const byStaff = new Map<string, { totalPaise: number; count: number }>();
   let totalPaise = 0;
@@ -115,10 +116,12 @@ gymRoutes.get("/followups", async (c) => {
   const byMember = new Map(roster.map((e) => [e.member.id, e]));
   const items: Followup[] = rows.results.map((r) => {
     const entry = byMember.get(r.member_id);
-    const message = reminderMessage(r.type, {
+    const chainEnd = entry?.standing.membership.chainEnd;
+    const message = whatsappText(r.type, {
       memberName: r.member_name,
       gymName: gym.name,
-      endDate: entry?.standing.membership.chainEnd?.endDate ?? null,
+      endDate: chainEnd?.endDate ?? null,
+      planName: chainEnd?.planName ?? null,
       duePaise: entry?.standing.duePaise ?? 0,
     });
     return {
@@ -131,7 +134,7 @@ gymRoutes.get("/followups", async (c) => {
       contactedByName: r.contacted_by_name,
       note: r.note,
       member: { id: r.member_id, name: r.member_name, phone: r.member_phone },
-      message: message.body,
+      message,
     };
   });
   return c.json({ items });
@@ -174,11 +177,12 @@ gymRoutes.patch("/settings", async (c) => {
     checkinLng: lng,
     checkinRadiusM: lat == null ? null : (optionalInt(body, "checkinRadiusM", 30, 5000) ?? DEFAULT_CHECKIN_RADIUS_M),
     reminderHour: int(body, "reminderHour", 5, 22),
+    batches: readBatches(body, parseBatches(gym.batches)),
   };
   await c.env.DB.batch([
     c.env.DB.prepare(
       `UPDATE gyms SET name = ?1, phone = ?2, address = ?3, timezone = ?4, upi_id = ?5, grace_days = ?6, joining_fee_paise = ?7, checkin_enabled = ?8,
-         checkin_lat = ?9, checkin_lng = ?10, checkin_radius_m = ?11, reminder_hour = ?12 WHERE id = ?13`,
+         checkin_lat = ?9, checkin_lng = ?10, checkin_radius_m = ?11, reminder_hour = ?12, batches = ?13 WHERE id = ?14`,
     ).bind(
       next.name,
       next.phone,
@@ -192,6 +196,7 @@ gymRoutes.patch("/settings", async (c) => {
       next.checkinLng,
       next.checkinRadiusM,
       next.reminderHour,
+      next.batches.join(","),
       gym.id,
     ),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "SETTINGS_EDIT", entity: "gym", entityId: gym.id, before: toGymSettings(gym), after: next }),
@@ -220,6 +225,14 @@ const SETTING_LABELS: Partial<Record<keyof GymSettings, string>> = {
   checkinRadiusM: "check-in radius",
   reminderHour: "reminder time",
 };
+
+/** The batches the gym runs: at least one, each a known batch, in morning-to-night order. Left out, they stay as they are. */
+function readBatches(body: Body, current: Batch[]): Batch[] {
+  const picked = body.batches;
+  if (picked === undefined) return current;
+  if (!Array.isArray(picked) || picked.length === 0 || picked.some((b) => !(BATCHES as readonly unknown[]).includes(b))) throw badInput("batches", "Please pick at least one batch.");
+  return BATCHES.filter((b) => picked.includes(b));
+}
 
 /** Names of the settings that differ, for the owner's notification. */
 function settingsChanges(before: GymSettings, after: Partial<GymSettings>): string[] {

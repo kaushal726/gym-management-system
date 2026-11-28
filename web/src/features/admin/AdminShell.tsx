@@ -8,19 +8,22 @@ import { ROLE_LABEL } from "../../lib/states.ts";
 import { Link, navigate, usePath } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { useApi } from "../../lib/useApi.ts";
-import { Avatar, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
+import { Avatar, Skeleton } from "../../components/ui/Feedback.tsx";
 import { Button, ButtonLink, IconButton } from "../../components/ui/Button.tsx";
 import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
 import { BrandMark } from "../../components/ui/Brand.tsx";
 import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { ApiRequestError } from "../../lib/api.ts";
-import { formatDate } from "../../lib/format.ts";
-import { gymIsOpen, SAAS_GRACE_DAYS, type GymAccess } from "../../../../shared/saas.ts";
+import { gymIsOpen } from "../../../../shared/saas.ts";
+import { PlanAlert } from "./PlanStatus.tsx";
+import { MadeBy } from "../../components/ui/MadeBy.tsx";
 import type { StaffGym } from "../../../../shared/api.ts";
 
 interface AdminContextValue {
   gymId: string;
+  /** The gym's own GymDesk plan: access and valid-till date. */
+  plan: Pick<StaffGym, "access" | "validTill">;
   role: StaffRole;
   isOwner: boolean;
   gym: GymSettings;
@@ -62,19 +65,6 @@ function navItems(base: string): NavItem[] {
 
 function isCurrent(path: string, href: string, base: string) {
   return href === base ? path === base : path === href || path.startsWith(`${href}/`);
-}
-
-/** The owner's reminder that the gym's own GymDesk plan is ending or has just ended. */
-function PlanBanner({ access, validTill }: { access: GymAccess; validTill: string | null }) {
-  return (
-    <div className="page" style={{ paddingBottom: 0 }}>
-      <Notice tone="warning">
-        {access === "GRACE"
-          ? `Your GymDesk plan ended on ${formatDate(validTill)}. The desk will pause ${SAAS_GRACE_DAYS} days after that. Please renew with GymDesk.`
-          : `Your GymDesk plan ends on ${formatDate(validTill)}. Please renew to keep the desk running without a break.`}
-      </Notice>
-    </div>
-  );
 }
 
 /** Buttons to the other gyms this person works at, if any. */
@@ -174,7 +164,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
   const current = items.find((i) => isCurrent(path, i.href, base));
 
   return (
-    <AdminContext.Provider value={{ gymId, role: staff.role, isOwner, gym: gym.data, reloadGym: gym.reload, base }}>
+    <AdminContext.Provider value={{ gymId, plan: { access: staff.access, validTill: staff.validTill }, role: staff.role, isOwner, gym: gym.data, reloadGym: gym.reload, base }}>
       <div className="shell">
         <aside className="shell__sidebar" aria-label="Main">
           <div className="brand">
@@ -240,8 +230,9 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
             </span>
           </header>
           <div className="shell__scroll">
-            {isOwner && (staff.access === "EXPIRING" || staff.access === "GRACE") && <PlanBanner access={staff.access} validTill={staff.validTill} />}
+            <PlanAlert access={staff.access} validTill={staff.validTill} role={staff.role} />
             {children}
+            <MadeBy />
           </div>
           <nav className="bottom-nav" aria-label="Main">
             {bottom.map((i) => (

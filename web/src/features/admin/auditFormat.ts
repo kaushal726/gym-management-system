@@ -20,6 +20,7 @@ const FIELD_LABEL: Record<string, string> = {
   dob: "Date of birth",
   gender: "Gender",
   batch: "Batch",
+  batches: "Batches",
   emergencyName: "Emergency contact",
   emergencyPhone: "Emergency mobile",
   guardianName: "Guardian",
@@ -59,6 +60,7 @@ function humanize(key: string): string {
 function formatValue(key: string, value: unknown): string {
   if (value == null || value === "") return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map((v) => formatValue(key, v)).join(", ");
   if (typeof value === "number" && key.endsWith("Paise")) return formatRupees(value);
   if (typeof value === "string" && ISO_DATE.test(value)) return formatDate(value);
   if (typeof value === "string" && value in VALUE_LABEL) return VALUE_LABEL[value];

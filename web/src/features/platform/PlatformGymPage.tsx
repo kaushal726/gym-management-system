@@ -1,7 +1,7 @@
 /* /platform/gyms/:id — one gym from the platform side: plan and valid-till, pause/resume, archive, owner,
  * details, team and health numbers. Never the gym's members' money. */
 import { useState } from "react";
-import { PiArchiveBold, PiArrowCounterClockwiseBold, PiArrowLeftBold, PiArrowSquareOutBold, PiPauseBold, PiPencilSimpleBold, PiPlayBold, PiUserCheckBold, PiWalletBold, PiWalletDuotone } from "react-icons/pi";
+import { PiArchiveBold, PiArrowCounterClockwiseBold, PiArrowLeftBold, PiArrowSquareOutBold, PiDotsThreeBold, PiEyeBold, PiPauseBold, PiPencilSimpleBold, PiPlayBold, PiUserCheckBold, PiWalletBold, PiWalletDuotone } from "react-icons/pi";
 import type { PlatformGymDetail } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { GYM_ACCESS_LABEL, SAAS_GRACE_DAYS } from "../../../../shared/saas.ts";
@@ -15,6 +15,7 @@ import { NarrowLayout } from "../../components/layout/NarrowLayout.tsx";
 import { Button, ButtonLink } from "../../components/ui/Button.tsx";
 import { Badge, EmptyState, ErrorState, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
 import { ReasonSheet } from "../../components/ui/ReasonSheet.tsx";
+import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
 import { ACCESS_TONE } from "./PlatformPage.tsx";
 import { BillingSheet, DetailsSheet, OwnerSheet } from "./PlatformSheets.tsx";
@@ -33,6 +34,11 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
   const toast = useToast();
   const { data, error, loading, reload } = useApi<PlatformGymDetail>(`/platform/gyms/${gymId}`);
   const [open, setOpen] = useState<Open>(null);
+  const [menu, setMenu] = useState(false);
+  const choose = (next: Open) => {
+    setMenu(false);
+    setOpen(next);
+  };
   const done = (message: string) => {
     setOpen(null);
     toast(message);
@@ -87,39 +93,16 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         {gym.status === "ACTIVE" && gym.access === "PAUSED" && <Notice tone="danger">Paused automatically: the plan ended on {formatDate(gym.validTill)} and the {SAAS_GRACE_DAYS}-day grace is over. Record a payment to reopen.</Notice>}
         {gym.access === "GRACE" && <Notice tone="warning">The plan ended on {formatDate(gym.validTill)}. It pauses itself after {SAAS_GRACE_DAYS} days.</Notice>}
         {gym.ownerEmail === session?.user?.email && <Notice tone="warning">The owner is your platform email. Change it to the gym owner's own Gmail.</Notice>}
-        <div className="detail-actions">
-          <div className="detail-actions__main">
-            <Button variant="primary" icon={<PiWalletBold />} onClick={() => setOpen("billing")}>
-              Record payment
-            </Button>
-            {gym.status === "ACTIVE" && (
-              <Button icon={<PiPauseBold />} onClick={() => setOpen("pause")}>
-                Pause
-              </Button>
-            )}
-            {gym.status === "PAUSED" && (
-              <Button icon={<PiPlayBold />} onClick={() => setOpen("resume")}>
-                Resume
-              </Button>
-            )}
-          </div>
-          <div className="detail-actions__quick">
-            <Button icon={<PiUserCheckBold />} onClick={() => setOpen("owner")}>
-              Owner
-            </Button>
-            <Button icon={<PiPencilSimpleBold />} onClick={() => setOpen("details")}>
-              Edit
-            </Button>
-            {gym.status === "ARCHIVED" ? (
-              <Button icon={<PiArrowCounterClockwiseBold />} onClick={() => setOpen("restore")}>
-                Restore
-              </Button>
-            ) : (
-              <Button variant="danger-ghost" icon={<PiArchiveBold />} onClick={() => setOpen("archive")}>
-                Archive
-              </Button>
-            )}
-          </div>
+        <ButtonLink href={`/platform/gyms/${gym.id}/owner-view`} variant="primary" icon={<PiEyeBold />} block>
+          Open owner's view
+        </ButtonLink>
+        <div className="form-grid form-grid--2">
+          <Button icon={<PiWalletBold />} onClick={() => setOpen("billing")}>
+            Record payment
+          </Button>
+          <Button icon={<PiDotsThreeBold />} onClick={() => setMenu(true)}>
+            More
+          </Button>
         </div>
       </div>
 
@@ -132,16 +115,6 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         <div className="stat">
           <span className="stat__label">Pending at desk</span>
           <span className="stat__value">{gym.pending}</span>
-        </div>
-        <div className="stat">
-          <span className="stat__label">Staff</span>
-          <span className="stat__value">{gym.staff}</span>
-        </div>
-        <div className="stat">
-          <span className="stat__label">Last activity</span>
-          <span className="stat__value" style={{ fontSize: 22, lineHeight: 1.6 }}>
-            {gym.lastActivityAt ? formatDate(gym.lastActivityAt.slice(0, 10)) : "—"}
-          </span>
         </div>
       </div>
 
@@ -159,6 +132,8 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
                 <dd>{gym.validTill ? formatDate(gym.validTill) : "No end date"}</dd>
                 <dt>Onboarded</dt>
                 <dd>{formatDateTime(gym.createdAt)}</dd>
+                <dt>Last activity</dt>
+                <dd>{gym.lastActivityAt ? formatDate(gym.lastActivityAt.slice(0, 10)) : "—"}</dd>
               </dl>
             </div>
           </section>
@@ -216,6 +191,35 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         </section>
       </div>
 
+      <Sheet open={menu} title="Manage gym" onClose={() => setMenu(false)}>
+        <div className="form-grid">
+          <Button icon={<PiUserCheckBold />} block onClick={() => choose("owner")}>
+            Change owner
+          </Button>
+          <Button icon={<PiPencilSimpleBold />} block onClick={() => choose("details")}>
+            Edit details
+          </Button>
+          {gym.status === "ACTIVE" && (
+            <Button icon={<PiPauseBold />} block onClick={() => choose("pause")}>
+              Pause gym
+            </Button>
+          )}
+          {gym.status === "PAUSED" && (
+            <Button icon={<PiPlayBold />} block onClick={() => choose("resume")}>
+              Resume gym
+            </Button>
+          )}
+          {gym.status === "ARCHIVED" ? (
+            <Button icon={<PiArrowCounterClockwiseBold />} block onClick={() => choose("restore")}>
+              Restore gym
+            </Button>
+          ) : (
+            <Button variant="danger-ghost" icon={<PiArchiveBold />} block onClick={() => choose("archive")}>
+              Archive gym
+            </Button>
+          )}
+        </div>
+      </Sheet>
       <BillingSheet open={open === "billing"} gym={gym} today={today} onClose={() => setOpen(null)} onDone={done} />
       <OwnerSheet open={open === "owner"} gym={gym} today={today} onClose={() => setOpen(null)} onDone={done} />
       <DetailsSheet open={open === "details"} gym={gym} today={today} onClose={() => setOpen(null)} onDone={done} />

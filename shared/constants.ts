@@ -40,5 +40,20 @@ export type Gender = (typeof GENDERS)[number];
 export const BATCHES = ["MORNING", "AFTERNOON", "EVENING", "NIGHT"] as const;
 export type Batch = (typeof BATCHES)[number];
 export const BATCH_LABEL: Record<Batch, string> = { MORNING: "Morning", AFTERNOON: "Afternoon", EVENING: "Evening", NIGHT: "Night" };
+/** What a new gym runs until its owner changes it in Settings. */
+export const DEFAULT_BATCHES: readonly Batch[] = ["MORNING", "EVENING"];
+
+/** Reads the comma-separated list kept in the database, in the usual morning-to-night order, ignoring anything unknown. */
+export function parseBatches(stored: string | null | undefined): Batch[] {
+  const wanted = new Set((stored ?? "").split(","));
+  const batches = BATCHES.filter((b) => wanted.has(b));
+  return batches.length > 0 ? batches : [...DEFAULT_BATCHES];
+}
+
+/** The choices a form offers: the gym's batches, plus the one the member already has if the gym no longer runs it. */
+export function batchChoices(gymBatches: readonly Batch[], current: Batch | null | undefined): Batch[] {
+  const all = current && !gymBatches.includes(current) ? [...gymBatches, current] : [...gymBatches];
+  return BATCHES.filter((b) => all.includes(b));
+}
 
 export const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;

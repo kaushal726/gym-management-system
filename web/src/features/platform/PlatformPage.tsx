@@ -10,6 +10,7 @@ import { useApi } from "../../lib/useApi.ts";
 import { useSession } from "../../lib/session.tsx";
 import { NarrowLayout } from "../../components/layout/NarrowLayout.tsx";
 import { Button } from "../../components/ui/Button.tsx";
+import { SelectField } from "../../components/ui/Field.tsx";
 import { Badge, EmptyState, ErrorState, ListSkeleton } from "../../components/ui/Feedback.tsx";
 import { Sheet } from "../../components/ui/Sheet.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
@@ -22,7 +23,6 @@ type Filter = "all" | "attention" | GymAccess;
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "attention", label: "Needs attention" },
-  { value: "ACTIVE", label: "Active" },
   { value: "PAUSED", label: "Paused" },
   { value: "ARCHIVED", label: "Archived" },
 ];
@@ -51,11 +51,8 @@ export function PlatformPage() {
       <div className="page-head">
         <div>
           <h1>Gyms</h1>
-          <p>Onboard gyms, track their GymDesk plan, pause or archive them.</p>
+          <p>Every gym on GymDesk.</p>
         </div>
-        <Button variant="primary" icon={<PiPlusBold />} onClick={() => setCreating(true)}>
-          Onboard gym
-        </Button>
       </div>
 
       {data && (
@@ -65,34 +62,22 @@ export function PlatformPage() {
             <span className="stat__value">{count("all")}</span>
           </div>
           <div className="stat">
-            <span className="stat__label">Needs attention</span>
-            <span className="stat__value" style={{ color: count("attention") ? "var(--warning)" : undefined }}>
-              {count("attention")}
-            </span>
-            <span className="stat__hint">Expiring, in grace or paused</span>
-          </div>
-          <div className="stat">
-            <span className="stat__label">Paused</span>
-            <span className="stat__value">{count("PAUSED")}</span>
-          </div>
-          <div className="stat">
             <span className="stat__label">Active members</span>
             <span className="stat__value">{totalActiveMembers}</span>
-            <span className="stat__hint">Across all gyms</span>
           </div>
         </div>
       )}
 
       <div className="card">
         <div className="card__bar card__bar--tools">
-          <div className="chips" role="toolbar" aria-label="Filter gyms">
+          <SelectField label="Show" value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
             {FILTERS.map((f) => (
-              <button key={f.value} type="button" className="chip" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>
+              <option key={f.value} value={f.value}>
                 {f.label}
-                {data && <span className="chip__count">{count(f.value)}</span>}
-              </button>
+                {data ? ` (${count(f.value)})` : ""}
+              </option>
             ))}
-          </div>
+          </SelectField>
         </div>
         {error && !data ? (
           <ErrorState message={error.message} onRetry={reload} />
@@ -118,15 +103,15 @@ export function PlatformPage() {
                 <span className="list-row__main">
                   <span className="list-row__title">{g.name}</span>
                   <span className="list-row__sub">{g.ownerEmail ?? "No owner"}</span>
-                  <span className="list-row__sub">
-                    {g.activeMembers} active of {g.members} members{g.pending ? ` · ${g.pending} pending` : ""}
-                  </span>
+                  <span className="list-row__sub">{g.activeMembers} active members</span>
                 </span>
                 <span className="list-row__end">
                   <Badge tone={ACCESS_TONE[g.access]}>{GYM_ACCESS_LABEL[g.access]}</Badge>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {g.validTill ? `till ${formatDate(g.validTill)}` : "No end date"}
-                  </span>
+                  {g.access !== "ACTIVE" && g.validTill && (
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      till {formatDate(g.validTill)}
+                    </span>
+                  )}
                   {g.ownerEmail === session?.user?.email && (
                     <span style={{ fontSize: 12, color: "var(--warning)", display: "flex", gap: 4, alignItems: "center" }}>
                       <PiWarningBold aria-hidden /> Owner is you
@@ -139,7 +124,12 @@ export function PlatformPage() {
         )}
       </div>
 
-      <Sheet open={creating} title="Onboard a gym" description="Only the owner's Gmail can open the gym. Your platform email can't own one." onClose={() => setCreating(false)}>
+      <button type="button" className="fab" onClick={() => setCreating(true)}>
+        <PiPlusBold aria-hidden />
+        <span>Onboard gym</span>
+      </button>
+
+      <Sheet open={creating} title="Onboard a gym" description="The owner opens it with their own Gmail." onClose={() => setCreating(false)}>
         <GymCreateForm
           endpoint="/platform/gyms"
           askOwner

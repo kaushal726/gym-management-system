@@ -16,6 +16,7 @@ import { CountUp } from "../../components/ui/CountUp.tsx";
 import { Tabs } from "../../components/ui/Tabs.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 import { MemberRow } from "./MemberRow.tsx";
+import { PlanLine } from "./PlanStatus.tsx";
 
 type AttentionTab = "waiting" | "expiring";
 
@@ -54,7 +55,7 @@ function Metric({ href, label, value, tone, icon }: { href: string; label: strin
 }
 
 export function TodayPage() {
-  const { gymId, base, gym, isOwner } = useAdmin();
+  const { gymId, base, gym, isOwner, plan } = useAdmin();
   const { session } = useSession();
   const { data, error, loading, reload } = useApi<Dashboard>(`/gyms/${gymId}/dashboard`);
   const [tab, setTab] = useState<AttentionTab>("waiting");
@@ -237,6 +238,7 @@ export function TodayPage() {
           </div>
         )
       )}
+      {plan.access === "ACTIVE" && <PlanLine validTill={plan.validTill} />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 /* The self-registration form behind the gym's QR. Only what the desk needs; the plan is chosen at the desk. */
 import { useState } from "react";
 import type { RegisterInput } from "../../../../shared/api.ts";
-import { BATCHES, BATCH_LABEL, GENDERS, type Batch, type Gender } from "../../../../shared/constants.ts";
+import { BATCH_LABEL, GENDERS, type Batch, type Gender } from "../../../../shared/constants.ts";
 import { ageOn } from "../../../../shared/dates.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
 import { localToday } from "../../lib/format.ts";
@@ -12,7 +12,7 @@ import { Notice } from "../../components/ui/Feedback.tsx";
 
 const GENDER_LABEL: Record<Gender, string> = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
 
-export function RegisterForm({ slug, gymName, onDone }: { slug: string; gymName: string; onDone: () => void }) {
+export function RegisterForm({ slug, gymName, batches, onDone }: { slug: string; gymName: string; batches: readonly Batch[]; onDone: () => void }) {
   const { session } = useSession();
   const [form, setForm] = useState({
     name: session?.user?.name ?? "",
@@ -73,13 +73,14 @@ export function RegisterForm({ slug, gymName, onDone }: { slug: string; gymName:
           Fill this once. The desk will pick your plan and take the payment.
         </p>
       </div>
+      <TextField label="Gmail" type="email" value={session?.user?.email ?? ""} readOnly disabled hint="From your Google sign-in. This is how you open your plan later." />
       <TextField label="Full name" value={form.name} onChange={(e) => set("name", e.target.value)} autoComplete="name" maxLength={80} required error={fieldError("name")} />
       <TextField label="Mobile number" type="tel" inputMode="numeric" value={form.phone} onChange={(e) => set("phone", e.target.value)} autoComplete="tel-national" placeholder="98765 43210" required error={fieldError("phone")} hint="Reminders and receipts are linked to this number." />
       <div className="form-grid form-grid--2">
         <TextField label="Date of birth" optional type="date" value={form.dob} max={today} onChange={(e) => set("dob", e.target.value)} error={fieldError("dob")} />
         <Segmented label="Gender" optional value={form.gender as Gender} onChange={(v) => set("gender", v)} options={GENDERS.map((g) => ({ value: g, label: GENDER_LABEL[g] }))} />
       </div>
-      <Segmented label="Batch" optional value={form.batch as Batch} onChange={(v) => set("batch", v)} options={BATCHES.map((b) => ({ value: b, label: BATCH_LABEL[b] }))} />
+      <Segmented label="Batch" optional value={form.batch as Batch} onChange={(v) => set("batch", v)} options={batches.map((b) => ({ value: b, label: BATCH_LABEL[b] }))} />
       {minor && (
         <div className="form-grid form-grid--2">
           <Notice tone="info">Members under 18 need a parent or guardian's details.</Notice>

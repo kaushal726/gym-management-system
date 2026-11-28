@@ -1,6 +1,6 @@
 /* Database row shapes and their mapping to API types. SQL uses snake_case, the API camelCase. */
 import type { Freeze, GymSettings, MemberProfile, Payment, Plan, PublicGym, Subscription, Visit } from "../../../shared/api.ts";
-import type { Batch, Gender, MemberStatus, PaymentMode, PlanKind, StaffRole } from "../../../shared/constants.ts";
+import { parseBatches, type Batch, type Gender, type MemberStatus, type PaymentMode, type PlanKind, type StaffRole } from "../../../shared/constants.ts";
 import type { MembershipState } from "../../../shared/membership.ts";
 import { gymAccess, gymIsOpen, type GymStatus } from "../../../shared/saas.ts";
 import { todayIn } from "../../../shared/dates.ts";
@@ -27,6 +27,7 @@ export interface GymRow {
   status_changed_at: string | null;
   saas_plan_name: string | null;
   valid_till: string | null;
+  batches: string;
   created_at: string;
 }
 
@@ -151,6 +152,7 @@ export function toPublicGym(g: GymRow): PublicGym {
     address: g.address,
     checkinEnabled: g.checkin_enabled === 1,
     checkinNeedsLocation: g.checkin_lat != null && g.checkin_lng != null && g.checkin_radius_m != null,
+    batches: parseBatches(g.batches),
     open: gymIsOpen(accessOf(g)),
   };
 }
@@ -171,6 +173,7 @@ export function toGymSettings(g: GymRow): GymSettings {
     checkinLng: g.checkin_lng,
     checkinRadiusM: g.checkin_radius_m,
     reminderHour: g.reminder_hour,
+    batches: parseBatches(g.batches),
   };
 }
 

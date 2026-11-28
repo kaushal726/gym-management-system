@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource/barlow-condensed": "5.3.0",
     "date-fns": "^4.4.0",
     "hono": "^4.13.20",
     "jose": "^6.2.18",
