@@ -60,6 +60,21 @@ app.onError((err, c) => {
   return c.json({ error: MESSAGES.server }, 500);
 });
 
+/** Sent with every response: nobody can put the app in a frame (clickjacking), and browsers must not guess file types. */
+const SECURITY_HEADERS: Record<string, string> = {
+  "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Strict-Transport-Security": "max-age=31536000",
+};
+
+function withSecurityHeaders(response: Response): Response {
+  const secured = new Response(response.body, response);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(name, value);
+  return secured;
+}
+
 /**
  * One entry for both homes of the app. On Cloudflare Pages (the public site) it serves the API and hands every
  * other path to the static files. The old Worker address sends everyone to PUBLIC_URL, so there is one site only.
@@ -72,8 +87,7 @@ async function handle(request: Request, env: Env, ctx: ExecutionContext): Promis
       return Response.redirect(`${publicUrl.origin}${url.pathname}${url.search}`, 301);
     }
   }
-  if (url.pathname.startsWith("/api/")) return app.fetch(request, env, ctx);
-  return env.ASSETS.fetch(request);
+  return withSecurityHeaders(url.pathname.startsWith("/api/") ? await app.fetch(request, env, ctx) : await env.ASSETS.fetch(request));
 }
 
 export default {

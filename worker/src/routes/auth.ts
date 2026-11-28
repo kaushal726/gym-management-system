@@ -8,6 +8,7 @@ import { ApiError, badInput, notFound } from "../lib/http.ts";
 import { asBody, email, text } from "../lib/validate.ts";
 import { nowIso } from "../lib/ids.ts";
 import { accessOf, type GymRow } from "../db/rows.ts";
+import { isPushServiceUrl } from "../push/endpoint.ts";
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -80,7 +81,7 @@ authRoutes.post("/push/subscribe", requireUser, async (c) => {
   const user = currentUser(c);
   const body = asBody(await c.req.json());
   const endpoint = text(body, "endpoint", { max: 1024 });
-  if (!endpoint.startsWith("https://")) throw new ApiError(400, "Notifications could not be turned on.", "endpoint");
+  if (!isPushServiceUrl(endpoint)) throw new ApiError(400, "Notifications could not be turned on.", "endpoint");
   const keys = asBody(body.keys);
   await c.env.DB.prepare(
     `INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth, created_at) VALUES (?1, ?2, ?3, ?4, ?5)
