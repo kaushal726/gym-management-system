@@ -1,6 +1,6 @@
 /* The WhatsApp message a gym sends when a member's plan is about to end (or just did): friendly, a little promotional,
  * and it ends with an easy next step. It is separate from the short push-notification text in reminders.ts, which has to
- * stay a line or two. Written in simple Hinglish, with WhatsApp's *bold* for what matters. Change the wording here only. */
+ * stay a line or two. Written in simple, friendly English, with WhatsApp's *bold* for what matters. Change the wording here only. */
 import type { IsoDate } from "./dates.ts";
 import type { MembershipSummary } from "./membership.ts";
 import { EXPIRY_OFFSETS, displayDate, reminderMessage, type MessageContext, type ReminderType } from "./reminders.ts";
@@ -28,49 +28,49 @@ export function renewalPitch(ctx: PitchContext): string {
   const hi = `Hi ${firstName(ctx.memberName)}!`;
   const plan = ctx.planName ? `*${ctx.planName}* plan` : "membership";
   const gym = `*${ctx.gymName}*`;
-  const end = ctx.endDate ? displayDate(ctx.endDate) : "jaldi";
+  const end = ctx.endDate ? displayDate(ctx.endDate) : "soon";
   const signoff = `Team ${ctx.gymName}`;
 
   if (ctx.daysLeft >= 2) {
     return [
       `${hi} 💪`,
-      `Aapka ${gym} ka ${plan} *${end}* ko khatam ho raha hai, bas ${ctx.daysLeft} din bache hain.`,
-      `Itni mehnat se jo momentum banaya hai, use rukne mat do! Abhi renew kar lo aur bina kisi break ke apni fitness journey chalate raho 🔥`,
-      `Desk pe aake renew kar lo, ya bas is message ka reply kar do. Hum sab sambhal lenge.`,
+      `Your ${gym} ${plan} ends on *${end}*, just ${ctx.daysLeft} days to go.`,
+      `You've built great momentum, so don't let it stop! Renew now and keep your fitness journey going without a break 🔥`,
+      `Drop by the desk to renew, or simply reply to this message. We'll take care of the rest.`,
       signoff,
     ].join("\n\n");
   }
   if (ctx.daysLeft === 1) {
     return [
       `${hi} ⏰`,
-      `Kal (*${end}*) aapka ${gym} ka ${plan} khatam ho raha hai.`,
-      `Aaj ya kal desk pe renew kar lo, taaki aapki workout ek din bhi na ruke. Streak banaye rakhna hai na? 💪`,
-      `Reply kar do ya seedha desk pe aa jao.`,
+      `Your ${gym} ${plan} ends tomorrow (*${end}*).`,
+      `Renew today or tomorrow so your workouts don't miss a single day. Want to keep that streak alive? 💪`,
+      `Reply to this message or visit the desk.`,
       signoff,
     ].join("\n\n");
   }
   if (ctx.daysLeft === 0) {
     return [
       `${hi} 🔥`,
-      `Aaj aapke ${gym} ke ${plan} ka *last day* hai.`,
-      `Aaj hi renew kar lo aur kal se bhi bina ruke train karte raho. Desk pe aao, hum ready hain!`,
+      `Today is the *last day* of your ${gym} ${plan}.`,
+      `Renew today and keep training from tomorrow without a break. Visit the desk, we're ready!`,
       signoff,
     ].join("\n\n");
   }
   if (ctx.daysLeft >= -RECENTLY_ENDED_DAYS) {
     return [
       `${hi}`,
-      `Aapka ${gym} ka ${plan} *${end}* ko khatam ho gaya. Par abhi bhi der nahi hui!`,
-      `Aaj hi renew karo aur wapas apni routine pe aa jao. Jitni jaldi shuru, utna kam break ka asar 💪`,
-      `Reply kar do ya desk pe aa jao, hum yahin hain.`,
+      `Your ${gym} ${plan} ended on *${end}*, but it's not too late!`,
+      `Renew today and get right back to your routine. The sooner you restart, the smaller the break 💪`,
+      `Reply to this message or visit the desk, we're right here.`,
       signoff,
     ].join("\n\n");
   }
   return [
     `${hi} 🙂`,
-    `${gym} mein aapki kami mehsoos ho rahi hai. Aapka ${plan} *${end}* ko khatam hua tha.`,
-    `Fitness journey phir se shuru karne ka isse accha time nahi. Wapas aao, renew karo, hum aapka wait kar rahe hain 💪`,
-    `Bas is message ka reply kar do.`,
+    `We miss you at ${gym}! Your ${plan} ended on *${end}*.`,
+    `There's no better time to restart your fitness journey. Come back, renew, and we'll be waiting for you 💪`,
+    `Just reply to this message.`,
     signoff,
   ].join("\n\n");
 }

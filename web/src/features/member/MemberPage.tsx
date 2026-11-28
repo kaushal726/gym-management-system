@@ -101,7 +101,12 @@ function MemberView({ gymId }: { gymId: string }) {
               </ButtonLink>
             </div>
           ) : (
-            <MembershipHero summary={membership} today={data.today} chainEnd={chainEnd} />
+            <MembershipHero
+              summary={membership}
+              today={data.today}
+              chainEnd={chainEnd}
+              renewHref={gym.phone ? whatsappLink(gym.phone.replace(/\D/g, "").slice(-10), `Hi ${gym.name}, this is ${member.name}. My plan is ending, I want to renew.`) : undefined}
+            />
           )}
 
           {data.duesTotalPaise > 0 && (
