@@ -7,6 +7,7 @@ import { currentUser, isPlatformAdmin, requireUser } from "../auth/guards.ts";
 import { ApiError, badInput, notFound } from "../lib/http.ts";
 import { asBody, email, text } from "../lib/validate.ts";
 import { nowIso } from "../lib/ids.ts";
+import { RATE_RULES, enforceRate, networkOf } from "../lib/rateLimit.ts";
 import { accessOf, type GymRow } from "../db/rows.ts";
 import { isPushServiceUrl } from "../push/endpoint.ts";
 
@@ -48,6 +49,7 @@ authRoutes.get("/session", async (c) => {
 authRoutes.post("/google", async (c) => {
   const clientId = c.env.GOOGLE_CLIENT_ID;
   if (!clientId) throw new ApiError(503, "Google sign-in is not set up yet.");
+  await enforceRate(c, RATE_RULES.signInByNetwork, networkOf(c));
   const body = asBody(await c.req.json());
   const identity = await verifyGoogleIdToken(text(body, "credential", { max: 4096 }), clientId);
   const user = await upsertUser(c.env.DB, identity);

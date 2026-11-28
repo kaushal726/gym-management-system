@@ -13,6 +13,7 @@ import { billingRoutes } from "./routes/admin/billing.ts";
 import { gymRoutes } from "./routes/admin/gym.ts";
 import { runDueGyms } from "./cron/daily.ts";
 import { drainPushQueue } from "./cron/drain.ts";
+import { clearExpiredRates } from "./lib/rateLimit.ts";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -97,6 +98,7 @@ export default {
       (async () => {
         await runDueGyms(env, new Date());
         await drainPushQueue(env);
+        await clearExpiredRates(env.DB, Date.now());
       })(),
     );
   },

@@ -16,6 +16,7 @@ import { freezesOfMember, getGym, getGymBySlug, paymentsOfMember, standing, subs
 import { toMemberProfile, toPublicGym, type GymRow, type MemberRow } from "../db/rows.ts";
 import { notifyUsers } from "../push/notify.ts";
 import { distanceMeters } from "../lib/geo.ts";
+import { RATE_RULES, enforceRate, networkOf } from "../lib/rateLimit.ts";
 
 export const publicRoutes = new Hono<AppEnv>();
 
@@ -49,6 +50,8 @@ publicRoutes.get("/gyms/:slug", async (c) => {
 
 publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
   const user = currentUser(c);
+  await enforceRate(c, RATE_RULES.registerByUser, user.id);
+  await enforceRate(c, RATE_RULES.registerByNetwork, networkOf(c));
   const gym = await gymOr404(c.env.DB, c.req.param("slug"));
   const body = asBody(await c.req.json());
   if (!toPublicGym(gym).open) throw new ApiError(403, MESSAGES.gymClosedToPublic, undefined, "GYM_PAUSED");
@@ -103,6 +106,8 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
 
 publicRoutes.post("/gyms/:slug/checkin", requireUser, async (c) => {
   const user = currentUser(c);
+  await enforceRate(c, RATE_RULES.checkinByUser, user.id);
+  await enforceRate(c, RATE_RULES.checkinByNetwork, networkOf(c));
   const gym = await gymOr404(c.env.DB, c.req.param("slug"));
   if (!toPublicGym(gym).open) throw new ApiError(403, MESSAGES.gymClosedToPublic, undefined, "GYM_PAUSED");
   if (gym.checkin_enabled !== 1) throw new ApiError(403, "Check-in is not turned on at this gym.");
@@ -183,6 +188,7 @@ publicRoutes.get("/claim/:token", async (c) => {
 
 publicRoutes.post("/claim/:token", requireUser, async (c) => {
   const user = currentUser(c);
+  await enforceRate(c, RATE_RULES.claimByNetwork, networkOf(c));
   const claim = await claimOr404(c.env.DB, c.req.param("token"));
   const blocked = await claimBlock(c.env.DB, claim, user);
   if (blocked) throw new ApiError(403, CLAIM_BLOCK_MESSAGE[blocked], undefined, `CLAIM_${blocked}`);
