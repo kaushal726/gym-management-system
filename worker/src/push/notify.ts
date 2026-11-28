@@ -1,5 +1,6 @@
 /* Sends a message to every device of a set of users and forgets devices the push service says are gone. */
 import type { Env } from "../env.ts";
+import { chunk } from "../lib/chunk.ts";
 import { sendPush, type PushMessage, type PushTarget, type VapidKeys } from "./webpush.ts";
 
 export function vapidKeys(env: Env): VapidKeys | null {
@@ -13,12 +14,13 @@ interface TargetRow extends PushTarget {
 
 export async function pushTargets(db: D1Database, userIds: readonly string[]): Promise<TargetRow[]> {
   if (userIds.length === 0) return [];
-  const placeholders = userIds.map((_, i) => `?${i + 1}`).join(", ");
-  const { results } = await db
-    .prepare(`SELECT user_id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id IN (${placeholders})`)
-    .bind(...userIds)
-    .all<TargetRow>();
-  return results;
+  // One batch of statements, each with at most MAX_BOUND_VALUES users, so any number of users stays under D1's limit.
+  const statements = chunk(userIds).map((ids) => {
+    const placeholders = ids.map((_, i) => `?${i + 1}`).join(", ");
+    return db.prepare(`SELECT user_id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id IN (${placeholders})`).bind(...ids);
+  });
+  const results = await db.batch<TargetRow>(statements);
+  return results.flatMap((r) => r.results);
 }
 
 /** Returns the users at least one of whose devices accepted the message. */

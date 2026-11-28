@@ -3,13 +3,14 @@ import { Hono } from "hono";
 import type { CheckinResult, GymEntry, MeMembership } from "../../../shared/api.ts";
 import { CLAIM_BLOCK_MESSAGE, type ClaimBlock, type ClaimInfo } from "../../../shared/claim.ts";
 import { ageOn, todayIn } from "../../../shared/dates.ts";
-import { BATCHES, GENDERS } from "../../../shared/constants.ts";
+import { GENDERS, batchChoices, parseBatches } from "../../../shared/constants.ts";
 import type { AppEnv } from "../env.ts";
 import { currentUser, requireUser } from "../auth/guards.ts";
 import { auditStatement } from "../lib/audit.ts";
 import { sha256Hex } from "../lib/crypto.ts";
-import { ApiError, MESSAGES, badInput, notFound } from "../lib/http.ts";
+import { ApiError, MESSAGES, badInput, conflict, notFound } from "../lib/http.ts";
 import { newId, nowIso } from "../lib/ids.ts";
+import { readMemberDetails } from "../lib/memberInput.ts";
 import { asBody, bool, mobile, optionalDate, optionalMobile, optionalNum, optionalOneOf, optionalText, text } from "../lib/validate.ts";
 import { freezesOfMember, getGym, getGymBySlug, paymentsOfMember, standing, subscriptionsOfMember, toStateSummary, visitsOfMember, MEMBER_COLUMNS } from "../db/queries.ts";
 import { toMemberProfile, toPublicGym, type GymRow, type MemberRow } from "../db/rows.ts";
@@ -76,7 +77,7 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
     phone,
     dob,
     gender: optionalOneOf(body, "gender", GENDERS),
-    batch: optionalOneOf(body, "batch", BATCHES),
+    batch: optionalOneOf(body, "batch", parseBatches(gym.batches)),
     emergencyName: optionalText(body, "emergencyName", { max: 80 }),
     emergencyPhone: optionalMobile(body, "emergencyPhone"),
     guardianName,
@@ -204,6 +205,45 @@ publicRoutes.post("/claim/:token", requireUser, async (c) => {
   );
   await c.env.DB.batch(statements);
   return c.json({ ok: true, gymId: claim.gym_id });
+});
+
+/** A member changes their own basic details (everything but the Gmail). A new phone number is kept in history and audited. */
+publicRoutes.patch("/me/gyms/:gymId", requireUser, async (c) => {
+  const user = currentUser(c);
+  const gym = await getGym(c.env.DB, c.req.param("gymId"));
+  if (!gym) throw notFound();
+  const member = await memberOfUser(c.env.DB, gym.id, user.id);
+  if (!member) throw notFound();
+  if (member.status === "REJECTED" || member.archived_at) throw conflict("Please see the desk to change your details.");
+  const input = readMemberDetails(asBody(await c.req.json()), todayIn(gym.timezone), batchChoices(parseBatches(gym.batches), member.batch));
+  const phoneChanged = input.phone !== member.phone;
+  const statements: D1PreparedStatement[] = [];
+  if (phoneChanged) {
+    const taken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2 AND id <> ?3").bind(gym.id, input.phone, member.id).first();
+    if (taken) throw new ApiError(409, MESSAGES.duplicatePhone, "phone");
+    statements.push(
+      c.env.DB.prepare("INSERT INTO member_phone_history (id, gym_id, member_id, old_phone, new_phone, changed_by, changed_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)").bind(newId(), gym.id, member.id, member.phone, input.phone, user.id, nowIso()),
+    );
+  }
+  const before = toMemberProfile(member);
+  statements.push(
+    c.env.DB.prepare(
+      `UPDATE members SET name = ?1, phone = ?2, dob = ?3, gender = ?4, emergency_name = ?5, emergency_phone = ?6, guardian_name = ?7, guardian_phone = ?8, batch = ?9
+       WHERE id = ?10 AND user_id = ?11`,
+    ).bind(input.name, input.phone, input.dob, input.gender, input.emergencyName, input.emergencyPhone, input.guardianName, input.guardianPhone, input.batch, member.id, user.id),
+    auditStatement(c.env.DB, {
+      gymId: gym.id,
+      actorId: user.id,
+      action: phoneChanged ? "MEMBER_PHONE_EDIT" : "MEMBER_SELF_EDIT",
+      entity: "member",
+      entityId: member.id,
+      before: { name: before.name, phone: before.phone, dob: before.dob, gender: before.gender, batch: before.batch, emergencyName: before.emergencyName, emergencyPhone: before.emergencyPhone, guardianName: before.guardianName, guardianPhone: before.guardianPhone },
+      after: input,
+      reason: "Changed by the member",
+    }),
+  );
+  await c.env.DB.batch(statements);
+  return c.json({ ok: true });
 });
 
 /** The signed-in member's own view of one gym. Read-only. */

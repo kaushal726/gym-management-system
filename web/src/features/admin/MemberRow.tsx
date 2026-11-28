@@ -18,9 +18,10 @@ function subline(m: MemberListItem): string {
   return formatMobile(m.phone);
 }
 
-export function MemberRow({ member, href }: { member: MemberListItem; href: string }) {
-  return (
-    <Link href={href} className="list-row">
+/** `href` opens the member; without it the row is just shown (the platform admin's read-only list). */
+export function MemberRow({ member, href }: { member: MemberListItem; href?: string }) {
+  const content = (
+    <>
       <Avatar name={member.name} src={member.pictureUrl} />
       <span className="list-row__main">
         <span className="list-row__title">{member.name}</span>
@@ -37,6 +38,13 @@ export function MemberRow({ member, href }: { member: MemberListItem; href: stri
           </span>
         )}
       </span>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="list-row">
+      {content}
     </Link>
+  ) : (
+    <div className="list-row">{content}</div>
   );
 }

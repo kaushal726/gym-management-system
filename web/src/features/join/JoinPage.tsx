@@ -1,11 +1,13 @@
 /* /g/:slug — the page behind the gym's QR code. One QR for everything: sign in, register, wait at the desk, check in. */
 import { PiArrowRightBold, PiArrowsClockwiseBold, PiProhibitDuotone } from "react-icons/pi";
 import type { GymEntry } from "../../../../shared/api.ts";
+import { BATCH_LABEL } from "../../../../shared/constants.ts";
+import { useGymBrand } from "../../lib/brand.ts";
 import { useApi } from "../../lib/useApi.ts";
 import { useSession } from "../../lib/session.tsx";
 import { NarrowLayout } from "../../components/layout/NarrowLayout.tsx";
 import { ButtonLink } from "../../components/ui/Button.tsx";
-import { Avatar, EmptyState, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
+import { Avatar, EmptyState, Skeleton } from "../../components/ui/Feedback.tsx";
 import { SignInCard } from "../auth/SignInCard.tsx";
 import { StatusScreen } from "../../components/layout/StatusScreen.tsx";
 import { Button } from "../../components/ui/Button.tsx";
@@ -16,11 +18,18 @@ import { RegisterForm } from "./RegisterForm.tsx";
 import { AccountChip } from "../../components/ui/AccountChip.tsx";
 import { CheckinPanel } from "./CheckinPanel.tsx";
 
+/** The name on the desk pass shrinks as it gets longer, so a long name stays on a few lines and no word is cut. */
+function deskPassNameSize(name: string): number {
+  const length = name.trim().length;
+  return length <= 16 ? 44 : length <= 28 ? 34 : 26;
+}
+
 export function JoinPage({ slug }: { slug: string }) {
   const { session } = useSession();
   // The user id in the query (ignored by the API) makes the entry reload when someone signs in or out.
   const userId = session?.user?.id ?? "anon";
   const entry = useApi<GymEntry>(`/public/gyms/${slug}?u=${userId}`);
+  useGymBrand(entry.data?.gym.id);
 
   if (entry.loading && !entry.data) {
     return (
@@ -56,25 +65,27 @@ export function JoinPage({ slug }: { slug: string }) {
     return (
       <AuthLayout
         preview="member"
-        eyebrow={gym.address ? `Welcome to · ${gym.address}` : "Welcome to"}
+        eyebrow={null}
         heading={<em>{gym.name}</em>}
-        text="Join, check in and see your plan right here."
+        text="Join in a minute. Your plan, dues and receipts stay on your phone."
+        chips={[gym.address, gym.batches.map((b) => BATCH_LABEL[b]).join(" · ")].filter((c): c is string => !!c)}
         points={MEMBER_POINTS}
         poweredBy
         monogram={initials(gym.name)}
+        titleLength={gym.name.length}
         fit
       >
         <SignInCard title="Continue with Google" subtitle="New here or already a member, start by signing in." />
       </AuthLayout>
     );
   }
-  const heading = !member ? `Join ${gym.name}` : member.status === "JOINED" ? `Welcome back, ${member.name.split(" ")[0]}` : gym.name;
+  const heading = !member ? `Join ${gym.name}` : member.status === "JOINED" ? `Hi, ${member.name.split(" ")[0]}` : gym.name;
   const waiting = member != null && (member.status === "PENDING" || member.status === "LEAD");
   const text = waiting ? "You're on the list. The desk will start your plan." : "Your plan, dues and receipts on your phone, and a reminder before your plan ends.";
   return (
     <AuthLayout
       preview="member"
-      eyebrow={gym.address ?? undefined}
+      eyebrow={null}
       heading={heading}
       text={text}
       points={MEMBER_POINTS}
@@ -87,19 +98,16 @@ export function JoinPage({ slug }: { slug: string }) {
           <EmptyState icon={<PiProhibitDuotone />} title="Not taking sign-ups right now" text="Please contact the gym's desk." />
         </div>
       ) : !member ? (
-        <RegisterForm slug={slug} gymName={gym.name} onDone={entry.reload} />
+        <RegisterForm slug={slug} gymName={gym.name} batches={gym.batches} onDone={entry.reload} />
       ) : member.status === "PENDING" || member.status === "LEAD" ? (
-        <div className="card enter" style={{ padding: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
-          <Avatar name={member.name} src={session.user.pictureUrl} size={96} />
-          <div>
-            <h1 style={{ fontSize: 26 }}>{member.name}</h1>
-            {member.requestNo != null && (
-              <p className="tabular" style={{ fontFamily: "var(--font-display)", fontSize: 40, fontWeight: 600, color: "var(--accent-strong)", lineHeight: 1.1, marginTop: 6 }}>
-                #{member.requestNo}
-              </p>
-            )}
-          </div>
-          <Notice tone="info">Show this screen at the desk. They will pick your plan and take the payment.</Notice>
+        <div className="card desk-pass enter">
+          <span className="desk-pass__tag">Request sent</span>
+          <Avatar name={member.name} src={session.user.pictureUrl} size={88} />
+          <h1 className="desk-pass__name" style={{ fontSize: deskPassNameSize(member.name) }}>
+            {member.name}
+          </h1>
+          <p className="desk-pass__gym">{gym.name}</p>
+          <p className="desk-pass__note">Show this screen at the desk. They will pick your plan and take the payment.</p>
         </div>
       ) : member.status === "REJECTED" ? (
         <div className="card">

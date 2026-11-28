@@ -2,15 +2,16 @@
 import { useEffect, useState } from "react";
 import { PiDownloadSimpleBold, PiMapPinBold } from "react-icons/pi";
 import type { GymSettings } from "../../../../shared/api.ts";
-import { DEFAULT_CHECKIN_RADIUS_M } from "../../../../shared/constants.ts";
+import { BATCHES, BATCH_LABEL, DEFAULT_CHECKIN_RADIUS_M, type Batch } from "../../../../shared/constants.ts";
 import { paiseToInput, rupeesToPaise } from "../../../../shared/money.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
 import { Button, ButtonLink } from "../../components/ui/Button.tsx";
 import { MoneyField, SelectField, Switch, TextField } from "../../components/ui/Field.tsx";
 import { Notice } from "../../components/ui/Feedback.tsx";
-import { Qr } from "../../components/ui/Qr.tsx";
+import { StyledQr } from "../../components/ui/StyledQr.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
 import { PushCard } from "../member/PushCard.tsx";
+import { PaymentQrCard } from "./PaymentQrCard.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
@@ -52,6 +53,7 @@ export function SettingsPage() {
       checkinLng: form.useLocation ? form.lng : null,
       checkinRadiusM: form.useLocation ? Number(form.radius) || DEFAULT_CHECKIN_RADIUS_M : null,
       reminderHour: form.reminderHour,
+      batches: form.batches,
     };
     try {
       await api.patch(`/gyms/${gymId}/settings`, body);
@@ -62,6 +64,12 @@ export function SettingsPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const toggleBatch = (batch: Batch) => {
+    const on = form.batches.includes(batch);
+    if (on && form.batches.length === 1) return;
+    set("batches", BATCHES.filter((b) => (b === batch ? !on : form.batches.includes(b))));
   };
 
   const useHere = () => {
@@ -117,6 +125,17 @@ export function SettingsPage() {
                 </option>
               ))}
             </SelectField>
+            <div className="field">
+              <span className="field__label">Batches you run</span>
+              <div className="chips chips--wrap" role="group" aria-label="Batches you run">
+                {BATCHES.map((b) => (
+                  <button key={b} type="button" className="chip" aria-pressed={form.batches.includes(b)} onClick={() => toggleBatch(b)}>
+                    {BATCH_LABEL[b]}
+                  </button>
+                ))}
+              </div>
+              <small>Members pick one of these when they join. Keep at least one.</small>
+            </div>
           </section>
 
           <section className="card card--pad form-grid">
@@ -147,10 +166,7 @@ export function SettingsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <section className="card card--pad" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", textAlign: "center" }}>
             <h2>Your gym's QR code</h2>
-            <Qr text={joinUrl} size={200} label="QR code to join this gym" />
-            <p className="muted" style={{ fontSize: 13, overflowWrap: "anywhere" }}>
-              {joinUrl}
-            </p>
+            <StyledQr text={joinUrl} size={200} label="QR code to join this gym" />
             <p className="muted" style={{ fontSize: 13 }}>
               New members sign up with it{gym.checkinEnabled ? ", and members check in with it" : ""}. Put it at the desk and the entrance.
             </p>
@@ -158,6 +174,7 @@ export function SettingsPage() {
               Download or print QR
             </ButtonLink>
           </section>
+          {gym.upiId && <PaymentQrCard upiId={gym.upiId} gymName={gym.name} />}
           <PushCard compact />
         </div>
       </div>
@@ -174,6 +191,7 @@ function toForm(g: GymSettings) {
     graceDays: String(g.graceDays),
     joiningFee: paiseToInput(g.joiningFeePaise),
     reminderHour: g.reminderHour,
+    batches: g.batches,
     checkinEnabled: g.checkinEnabled,
     useLocation: g.checkinLat != null,
     lat: g.checkinLat,

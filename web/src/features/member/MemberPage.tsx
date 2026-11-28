@@ -1,14 +1,19 @@
-/* /me and /me/:gymId — the member's own page. View only: plan, days left, dues, receipts, history. */
-import { PiPhoneBold, PiUserPlusDuotone, PiWhatsappLogoBold } from "react-icons/pi";
-import type { MeMembership } from "../../../../shared/api.ts";
+/* /me and /me/:gymId — the member's own page: a welcome, plan, days left, dues, receipts, history, and their own details to edit. */
+import { useState } from "react";
+import { PiPencilSimpleBold, PiPhoneBold, PiUserPlusDuotone, PiWhatsappLogoBold } from "react-icons/pi";
+import type { MeMembership, MemberProfile } from "../../../../shared/api.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { callLink, formatMobile, whatsappLink } from "../../../../shared/phone.ts";
+import { useGymBrand } from "../../lib/brand.ts";
 import { formatDate } from "../../lib/format.ts";
 import { navigate, Redirect } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
 import { useSession } from "../../lib/session.tsx";
 import { NarrowLayout } from "../../components/layout/NarrowLayout.tsx";
-import { ButtonLink } from "../../components/ui/Button.tsx";
+import { Button, ButtonLink } from "../../components/ui/Button.tsx";
+import { useToast } from "../../components/ui/Toast.tsx";
+import { MemberFormSheet } from "../admin/MemberFormSheet.tsx";
+import { GymHero } from "./GymHero.tsx";
 import { EmptyState, ErrorState, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
 import { Qr, upiLink } from "../../components/ui/Qr.tsx";
 import { FreezeList, MembershipHero, PaymentList, SubscriptionList, VisitSummary } from "./MemberSections.tsx";
@@ -21,7 +26,7 @@ export function MemberPage({ gymId }: { gymId?: string }) {
   const gyms = session?.memberOf ?? [];
   if (gyms.length === 0) {
     return (
-      <NarrowLayout title="My membership">
+      <NarrowLayout title="My membership" hero={<GymHero firstName={firstNameOf(session?.user?.name)} />}>
         <EmptyState icon={<PiUserPlusDuotone />} title="No membership yet" text="Scan the QR code at your gym's desk to join. If the desk added you, ask them for a link on WhatsApp." />
       </NarrowLayout>
     );
@@ -31,9 +36,21 @@ export function MemberPage({ gymId }: { gymId?: string }) {
   return <MemberView gymId={selected.gymId} />;
 }
 
+function firstNameOf(name: string | undefined): string {
+  return name?.split(" ")[0] || "there";
+}
+
+/** The gym's address and the member's batch, as the hero's small print. */
+function heroInfo(address: string | null, batch: MemberProfile["batch"]): string[] {
+  return [address, batch ? `${BATCH_LABEL[batch]} batch` : null].filter((x): x is string => !!x);
+}
+
 function MemberView({ gymId }: { gymId: string }) {
   const { session } = useSession();
+  const toast = useToast();
   const { data, error, loading, reload } = useApi<MeMembership>(`/public/me/gyms/${gymId}`);
+  const [editing, setEditing] = useState(false);
+  useGymBrand(data?.gym.id);
   const gyms = session?.memberOf ?? [];
   const switcher =
     gyms.length > 1 ? (
@@ -48,7 +65,7 @@ function MemberView({ gymId }: { gymId: string }) {
 
   if (loading && !data) {
     return (
-      <NarrowLayout title="My membership" actions={switcher}>
+      <NarrowLayout title="My membership" hero={<GymHero firstName={firstNameOf(session?.user?.name)} switcher={switcher} />}>
         <div className="card card--pad" style={{ display: "grid", justifyItems: "center", gap: 16 }}>
           <Skeleton width={168} height={168} radius={84} />
           <Skeleton width="50%" height={20} />
@@ -59,7 +76,7 @@ function MemberView({ gymId }: { gymId: string }) {
   }
   if (error || !data) {
     return (
-      <NarrowLayout title="My membership" actions={switcher}>
+      <NarrowLayout title="My membership" hero={<GymHero firstName={firstNameOf(session?.user?.name)} switcher={switcher} />}>
         <ErrorState message={error?.message} onRetry={reload} />
       </NarrowLayout>
     );
@@ -72,7 +89,7 @@ function MemberView({ gymId }: { gymId: string }) {
   const pending = member.status === "PENDING" || member.status === "LEAD";
 
   return (
-    <NarrowLayout title={gym.name} subtitle={`Hi, ${member.name.split(" ")[0]}`} actions={switcher} wide>
+    <NarrowLayout title={gym.name} hero={<GymHero firstName={firstNameOf(member.name)} gymName={gym.name} info={heroInfo(gym.address, member.batch)} switcher={switcher} />} wide>
       <div className="member-grid">
         <div className="member-grid__side">
           {pending ? (
@@ -166,6 +183,9 @@ function MemberView({ gymId }: { gymId: string }) {
           <section className="card">
             <div className="card__head">
               <span className="section__title">My details</span>
+              <Button size="sm" variant="ghost" icon={<PiPencilSimpleBold />} onClick={() => setEditing(true)}>
+                Edit
+              </Button>
             </div>
             <div className="card__body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <dl className="kv">
@@ -190,7 +210,7 @@ function MemberView({ gymId }: { gymId: string }) {
                 )}
               </dl>
               <p className="muted" style={{ fontSize: 13 }}>
-                To change your details, please ask the desk.
+                Your Gmail can only be changed by the gym.
               </p>
             </div>
           </section>
@@ -198,20 +218,34 @@ function MemberView({ gymId }: { gymId: string }) {
           {gym.phone && (
             <section className="card">
               <div className="card__head">
-                <span className="section__title">Contact the gym</span>
+                <span className="section__title">Need help?</span>
               </div>
-              <div className="card__body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="card__body" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
                 <ButtonLink href={whatsappLink(gym.phone.replace(/\D/g, "").slice(-10), `Hi ${gym.name}, this is ${member.name}.`)} external icon={<PiWhatsappLogoBold />}>
-                  Message gym
+                  WhatsApp the desk
                 </ButtonLink>
                 <ButtonLink href={callLink(gym.phone.replace(/\D/g, "").slice(-10))} external icon={<PiPhoneBold />}>
-                  Call gym
+                  Call the desk
                 </ButtonLink>
               </div>
             </section>
           )}
         </div>
       </div>
+      <MemberFormSheet
+        open={editing}
+        gymId={gym.id}
+        today={data.today}
+        member={member}
+        batches={gym.batches}
+        selfEdit
+        onClose={() => setEditing(false)}
+        onSaved={() => {
+          setEditing(false);
+          toast("Details saved");
+          reload();
+        }}
+      />
     </NarrowLayout>
   );
 }

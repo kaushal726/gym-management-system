@@ -4,7 +4,7 @@ import { PiCopyBold, PiDownloadSimpleBold, PiPrinterBold, PiShareNetworkBold } f
 import { errorMessage } from "../../lib/api.ts";
 import { buildQrPoster, downloadBlob } from "../../lib/qrPoster.ts";
 import { Button, ButtonLink } from "../../components/ui/Button.tsx";
-import { Qr } from "../../components/ui/Qr.tsx";
+import { QrPosterView } from "../../components/ui/QrPosterView.tsx";
 import { useToast } from "../../components/ui/Toast.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 
@@ -22,7 +22,8 @@ export function GymQrPage() {
   const lead = gym.checkinEnabled ? "Scan to join or check in" : "Scan to join";
   const fileName = `${gym.slug}-qr.png`;
 
-  const makeImage = () => buildQrPoster({ gymName: gym.name, joinUrl, lead });
+  const poster = { gymId: gym.id, gymName: gym.name, joinUrl, lead };
+  const makeImage = () => buildQrPoster(poster);
 
   const download = async () => {
     setBusy("download");
@@ -67,12 +68,7 @@ export function GymQrPage() {
       </div>
 
       <section className="card qr-card enter">
-        <div className="qr-card__code">
-          <span className="qr-card__name">{gym.name}</span>
-          <span className="qr-card__lead">{lead}</span>
-          <Qr text={joinUrl} size={240} label="QR code to join this gym" />
-          <span className="qr-card__url">{joinUrl}</span>
-        </div>
+        <QrPosterView {...poster} />
         <div className="qr-card__actions">
           <Button variant="primary" block icon={<PiDownloadSimpleBold />} loading={busy === "download"} disabled={busy !== null} onClick={() => void download()}>
             Download QR

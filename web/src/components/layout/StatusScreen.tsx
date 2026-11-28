@@ -6,6 +6,7 @@ import { navigate } from "../../lib/router.tsx";
 import { useSession } from "../../lib/session.tsx";
 import { Button } from "../ui/Button.tsx";
 import { Brand } from "../ui/Brand.tsx";
+import { MadeBy } from "../ui/MadeBy.tsx";
 import { AccountChip } from "../ui/AccountChip.tsx";
 import { Illustration, type IllustrationKind } from "../ui/Illustration.tsx";
 
@@ -48,6 +49,7 @@ export function StatusScreen({ art, title, text, actions, hideHome }: Props) {
           </div>
         </div>
       </main>
+      <MadeBy />
     </div>
   );
 }

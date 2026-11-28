@@ -1,4 +1,4 @@
-/* Members: filter chips (same rules as the dashboard counts), search by name or phone, add a walk-in. */
+/* Members: a filter dropdown (same rules as the dashboard counts), search by name or phone, add a walk-in. */
 import { useEffect, useState } from "react";
 import { PiMagnifyingGlassBold, PiPlusBold, PiUsersThreeDuotone } from "react-icons/pi";
 import type { MemberFilter, MemberListItem } from "../../../../shared/api.ts";
@@ -8,6 +8,7 @@ import { localToday } from "../../lib/format.ts";
 import { navigate, useQueryParam } from "../../lib/router.tsx";
 import { useApi } from "../../lib/useApi.ts";
 import { Button } from "../../components/ui/Button.tsx";
+import { SelectField } from "../../components/ui/Field.tsx";
 import { EmptyState, ErrorState, ListSkeleton } from "../../components/ui/Feedback.tsx";
 import { useAdmin } from "./AdminShell.tsx";
 import { MemberFormSheet } from "./MemberFormSheet.tsx";
@@ -18,7 +19,7 @@ const SEARCH_DELAY_MS = 250;
 const VISIBLE_FILTERS: MemberFilter[] = MEMBER_FILTERS.filter((f) => f !== "frozen");
 
 export function MembersPage() {
-  const { gymId, base } = useAdmin();
+  const { gymId, base, gym } = useAdmin();
   const filterParam = useQueryParam("filter");
   const filter: MemberFilter = (MEMBER_FILTERS as readonly string[]).includes(filterParam ?? "") ? (filterParam as MemberFilter) : "all";
   const addOpen = useQueryParam("add") === "1";
@@ -54,14 +55,14 @@ export function MembersPage() {
             <PiMagnifyingGlassBold className="input-affix__prefix" aria-hidden />
             <input className="input" type="search" placeholder="Search name or mobile" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search members" />
           </div>
-          <div className="chips" role="toolbar" aria-label="Filter members">
+          <SelectField label="Show" value={filter} onChange={(e) => setFilter(e.target.value as MemberFilter)}>
             {VISIBLE_FILTERS.map((f) => (
-              <button key={f} type="button" className="chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+              <option key={f} value={f}>
                 {FILTER_LABEL[f]}
-                {data && <span className="chip__count">{data.counts[f]}</span>}
-              </button>
+                {data ? ` (${data.counts[f]})` : ""}
+              </option>
             ))}
-          </div>
+          </SelectField>
         </div>
         {error && !data ? (
           <ErrorState message={error.message} onRetry={reload} />
@@ -99,6 +100,7 @@ export function MembersPage() {
         open={addOpen}
         gymId={gymId}
         today={localToday()}
+        batches={gym.batches}
         onClose={() => navigate(`${base}/members${filter === "all" ? "" : `?filter=${filter}`}`, { replace: true })}
         onSaved={(id) => navigate(`${base}/members/${id}?activate=1`)}
       />

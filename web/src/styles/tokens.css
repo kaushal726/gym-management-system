@@ -7,6 +7,8 @@
   /* Headings and big numbers use the same family, condensed and extra-bold. */
   --font-heading: var(--font-sans);
   --font-display: var(--font-sans);
+  /* A sporty condensed face for a gym's own pages (its name over its photo). */
+  --font-hero: "Barlow Condensed", "Archivo Variable", system-ui, sans-serif;
   --heading-stretch: 84%;
   --display-stretch: 72%;
 
@@ -24,11 +26,20 @@
   --ink-hover: #2b2b31;
   --on-ink: #ffffff;
 
+  /* GymDesk's own teal, for its name and logo. A gym brand changes --accent but never these. */
+  --gymdesk-accent: #0b8277;
+  --gymdesk-panel-accent: #5eead4;
+
   --accent: #0b8277;
   --accent-strong: #0a6b62;
   --accent-strong-hover: #085850;
   --accent-soft: #dff7f2;
   --accent-soft-text: #0f5c55;
+  /* The accent as text or an icon on a light page; a gym brand can pick something darker than its fill. */
+  --accent-ink: var(--accent);
+  --accent-glow: rgba(13, 148, 136, 0.35);
+  /* How much the rotating hero photos (HeroSlides) are softened; the same for every gym. */
+  --brand-photo-blur: 1px;
   --on-accent: #ffffff;
 
   --panel-bg: #0e0e10;
@@ -92,3 +103,5 @@
   --dur: 200ms;
   --dur-slow: 320ms;
 }
+
+

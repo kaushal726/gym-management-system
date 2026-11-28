@@ -1,7 +1,7 @@
 /* Add a walk-in at the desk, or edit someone's details. A changed phone number is kept in history. */
 import { useEffect, useState } from "react";
 import type { MemberInput, MemberProfile } from "../../../../shared/api.ts";
-import { BATCHES, BATCH_LABEL, GENDERS, type Batch, type Gender } from "../../../../shared/constants.ts";
+import { BATCH_LABEL, GENDERS, batchChoices, type Batch, type Gender } from "../../../../shared/constants.ts";
 import { ageOn } from "../../../../shared/dates.ts";
 import { api, errorField, errorMessage } from "../../lib/api.ts";
 import { Button } from "../../components/ui/Button.tsx";
@@ -31,11 +31,15 @@ interface Props {
   gymId: string;
   today: string;
   member?: MemberProfile | null;
+  /** The batches the gym runs. */
+  batches: readonly Batch[];
+  /** The member editing their own details: no Gmail field, and it saves through their own endpoint. */
+  selfEdit?: boolean;
   onClose: () => void;
   onSaved: (memberId: string) => void;
 }
 
-export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }: Props) {
+export function MemberFormSheet({ open, gymId, today, member, batches, selfEdit = false, onClose, onSaved }: Props) {
   const [form, setForm] = useState(emptyForm(member));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string } | null>(null);
@@ -51,8 +55,12 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
   const fieldError = (f: string) => (error?.field === f ? error.message : null);
 
   const save = async () => {
-    setBusy(true);
     setError(null);
+    if (!member && !form.email.trim()) {
+      setError({ message: "Please enter the member's Gmail so they can sign in.", field: "email" });
+      return;
+    }
+    setBusy(true);
     const body: MemberInput = {
       name: form.name,
       phone: form.phone,
@@ -66,7 +74,11 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
       guardianPhone: minor ? form.guardianPhone || null : null,
     };
     try {
-      if (member) {
+      if (member && selfEdit) {
+        const { email: _gmail, ...ownDetails } = body;
+        await api.patch(`/public/me/gyms/${gymId}`, ownDetails);
+        onSaved(member.id);
+      } else if (member) {
         await api.patch(`/gyms/${gymId}/members/${member.id}`, body);
         onSaved(member.id);
       } else {
@@ -83,8 +95,8 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
   return (
     <Sheet
       open={open}
-      title={member ? "Edit details" : "Add member"}
-      description={member ? undefined : "For walk-ins and existing members from your register. You'll pick the plan next."}
+      title={selfEdit ? "Edit my details" : member ? "Edit details" : "Add member"}
+      description={selfEdit ? "Your Gmail can only be changed by the gym." : member ? undefined : "For walk-ins and existing members from your register. You'll pick the plan next."}
       onClose={onClose}
       footer={
         <>
@@ -103,25 +115,27 @@ export function MemberFormSheet({ open, gymId, today, member, onClose, onSaved }
         }}
       >
         <TextField label="Full name" value={form.name} onChange={(e) => set("name", e.target.value)} maxLength={80} error={fieldError("name")} />
-        <TextField label="Mobile number" type="tel" inputMode="numeric" value={form.phone} onChange={(e) => set("phone", e.target.value)} error={fieldError("phone")} hint={member ? "The old number is kept in history." : undefined} />
-        <TextField
-          label="Gmail"
-          optional
-          type="email"
-          inputMode="email"
-          autoComplete="off"
-          value={form.email}
-          onChange={(e) => set("email", e.target.value)}
-          maxLength={254}
-          disabled={!!member?.linkedEmail}
-          error={fieldError("email")}
-          hint={member?.linkedEmail ? `Signs in as ${member.linkedEmail}. To change it, unlink the app from More first.` : "When they sign in with Google using this email, their plan and dues open on their phone."}
-        />
+        <TextField label="Mobile number" type="tel" inputMode="numeric" value={form.phone} onChange={(e) => set("phone", e.target.value)} error={fieldError("phone")} hint={selfEdit ? "Reminders and receipts go to this number. The old one is kept in history." : member ? "The old number is kept in history." : undefined} />
+        {!selfEdit && (
+          <TextField
+            label="Gmail"
+            optional={!!member}
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            maxLength={254}
+            disabled={!!member?.linkedEmail}
+            error={fieldError("email")}
+            hint={member?.linkedEmail ? `Signs in as ${member.linkedEmail}. To change it, unlink the app from More first.` : "They sign in with Google using this email, and their plan and dues open on their phone."}
+          />
+        )}
         <div className="form-grid form-grid--2">
           <TextField label="Date of birth" optional type="date" max={today} value={form.dob} onChange={(e) => set("dob", e.target.value)} error={fieldError("dob")} />
           <Segmented label="Gender" optional value={form.gender as Gender} onChange={(v) => set("gender", v)} options={GENDERS.map((g) => ({ value: g, label: GENDER_LABEL[g] }))} />
         </div>
-        <Segmented label="Batch" optional value={form.batch as Batch} onChange={(v) => set("batch", v)} options={BATCHES.map((b) => ({ value: b, label: BATCH_LABEL[b] }))} />
+        <Segmented label="Batch" optional value={form.batch as Batch} onChange={(v) => set("batch", v)} options={batchChoices(batches, member?.batch).map((b) => ({ value: b, label: BATCH_LABEL[b] }))} />
         {minor && (
           <div className="form-grid form-grid--2">
             <TextField label="Guardian's name" value={form.guardianName} onChange={(e) => set("guardianName", e.target.value)} error={fieldError("guardianName")} />

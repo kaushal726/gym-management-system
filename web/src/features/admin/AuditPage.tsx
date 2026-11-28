@@ -16,6 +16,7 @@ const ACTION_LABEL: Record<string, string> = {
   MEMBER_REGISTER: "Signed up from QR",
   MEMBER_ADD: "Member added",
   MEMBER_EDIT: "Details edited",
+  MEMBER_SELF_EDIT: "Member edited own details",
   MEMBER_PHONE_EDIT: "Phone number changed",
   MEMBER_REJECT: "Request rejected",
   MEMBER_ARCHIVE: "Member archived",

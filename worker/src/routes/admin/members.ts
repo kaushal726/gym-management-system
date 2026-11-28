@@ -2,8 +2,8 @@
 import { Hono } from "hono";
 import type { ClaimLink, MemberDetail, MemberFilter, MemberListItem } from "../../../../shared/api.ts";
 import { MEMBER_FILTERS } from "../../../../shared/api.ts";
-import { BATCHES, CLAIM_LINK_DAYS, GENDERS } from "../../../../shared/constants.ts";
-import { ageOn, todayIn } from "../../../../shared/dates.ts";
+import { CLAIM_LINK_DAYS, batchChoices, parseBatches, type Batch } from "../../../../shared/constants.ts";
+import { todayIn } from "../../../../shared/dates.ts";
 import { matchesFilter, matchesSearch } from "../../../../shared/filters.ts";
 import { nextStartDate } from "../../../../shared/membership.ts";
 import type { AppEnv } from "../../env.ts";
@@ -12,7 +12,8 @@ import { auditStatement } from "../../lib/audit.ts";
 import { randomToken, sha256Hex } from "../../lib/crypto.ts";
 import { ApiError, badInput, conflict, notFound } from "../../lib/http.ts";
 import { newId, nowIso } from "../../lib/ids.ts";
-import { asBody, mobile, optionalDate, optionalEmail, optionalMobile, optionalOneOf, optionalText, text, type Body } from "../../lib/validate.ts";
+import { readMemberDetails } from "../../lib/memberInput.ts";
+import { asBody, optionalEmail, optionalText, text, type Body } from "../../lib/validate.ts";
 import { freezesOfMember, getMember, loadRoster, paymentsOfMember, standing, subscriptionsOfMember, toListItem, toStateSummary, visitsOfMember } from "../../db/queries.ts";
 import { toMemberProfile, type MemberRow } from "../../db/rows.ts";
 
@@ -28,26 +29,8 @@ async function memberOr404(db: D1Database, gymId: string, memberId: string): Pro
   return member;
 }
 
-function readMemberInput(body: Body, today: string) {
-  const dob = optionalDate(body, "dob");
-  if (dob && (dob > today || ageOn(dob, today) > 100)) throw badInput("dob");
-  const guardianName = optionalText(body, "guardianName", { max: 80 });
-  const guardianPhone = optionalMobile(body, "guardianPhone");
-  if (dob && ageOn(dob, today) < 18 && (!guardianName || !guardianPhone)) {
-    throw badInput(guardianName ? "guardianPhone" : "guardianName", "A parent or guardian's name and number are needed for members under 18.");
-  }
-  return {
-    name: text(body, "name", { max: 80 }),
-    phone: mobile(body, "phone"),
-    dob,
-    gender: optionalOneOf(body, "gender", GENDERS),
-    batch: optionalOneOf(body, "batch", BATCHES),
-    emergencyName: optionalText(body, "emergencyName", { max: 80 }),
-    emergencyPhone: optionalMobile(body, "emergencyPhone"),
-    guardianName,
-    guardianPhone,
-    email: optionalEmail(body, "email"),
-  };
+function readMemberInput(body: Body, today: string, allowedBatches: readonly Batch[]) {
+  return { ...readMemberDetails(body, today, allowedBatches), email: optionalEmail(body, "email") };
 }
 
 const EMAIL_TAKEN = "This email is already used by another member at this gym.";
@@ -89,7 +72,8 @@ memberRoutes.get("/members", async (c) => {
 memberRoutes.post("/members", async (c) => {
   const { gym } = currentStaff(c);
   const user = currentUser(c);
-  const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone));
+  const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone), parseBatches(gym.batches));
+  if (!input.email) throw badInput("email", "Please enter the member's Gmail so they can sign in.");
   const taken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2").bind(gym.id, input.phone).first();
   if (taken) throw new ApiError(409, "This phone number is already registered at this gym.", "phone");
   if (input.email) await assertEmailFree(c.env.DB, gym.id, input.email, null);
@@ -148,7 +132,7 @@ memberRoutes.patch("/members/:memberId", async (c) => {
   const { gym } = currentStaff(c);
   const user = currentUser(c);
   const member = await memberOr404(c.env.DB, gym.id, c.req.param("memberId"));
-  const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone));
+  const input = readMemberInput(asBody(await c.req.json()), todayIn(gym.timezone), batchChoices(parseBatches(gym.batches), member.batch));
   const statements: D1PreparedStatement[] = [];
   if (input.phone !== member.phone) {
     const taken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2 AND id <> ?3").bind(gym.id, input.phone, member.id).first();
