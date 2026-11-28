@@ -1,32 +1,50 @@
 /* Read-only building blocks of the member page. Shared by the member's own view and the desk's member detail. */
 import type { ReactNode } from "react";
-import { PiCalendarBlankDuotone, PiPauseCircleBold, PiWalletDuotone } from "react-icons/pi";
+import { PiCalendarBlankDuotone, PiPauseCircleBold, PiWalletDuotone, PiWarningBold, PiWhatsappLogoBold } from "react-icons/pi";
 import type { Freeze, Payment, StateSummary, Subscription, Visit } from "../../../../shared/api.ts";
 import { daysBetween } from "../../../../shared/dates.ts";
 import { formatRupees } from "../../../../shared/money.ts";
 import { formatDate, formatDateTime, formatDayMonth, planLength, plural } from "../../lib/format.ts";
 import { MODE_LABEL } from "../../lib/states.ts";
 import { Badge, EmptyState, StateBadge } from "../../components/ui/Feedback.tsx";
+import { ButtonLink } from "../../components/ui/Button.tsx";
 import { Ring } from "../../components/ui/Ring.tsx";
 
 const RING_COLOR = { ACTIVE: "var(--accent)", FROZEN: "var(--accent)", GRACE: "var(--warning)", EXPIRED: "var(--danger)", UPCOMING: "var(--accent)", NO_PLAN: "var(--border-strong)" } as const;
 
-export function MembershipHero({ summary, today, chainEnd }: { summary: StateSummary; today: string; chainEnd: string | null }) {
+/** A plan with this many days or fewer left (and no renewal waiting) is shown in alarm mode. */
+const PANIC_DAYS_LEFT = 1;
+
+/** `renewHref` (the member's own page) adds a "Renew now" button in alarm mode. */
+export function MembershipHero({ summary, today, chainEnd, renewHref }: { summary: StateSummary; today: string; chainEnd: string | null; renewHref?: string }) {
   const sub = summary.current ?? summary.upcoming;
   const covered = summary.state === "ACTIVE" || summary.state === "FROZEN";
   const left = covered && chainEnd ? daysBetween(today, chainEnd) : 0;
   const total = sub ? daysBetween(sub.startDate, chainEnd ?? sub.endDate) + 1 : 1;
   // Same count as the desk sees: days after today until the plan ends; the end date itself is "last day".
   const ringNumber = covered ? (left === 0 ? "Today" : String(left)) : summary.state === "UPCOMING" && sub ? String(daysBetween(today, sub.startDate)) : "0";
+  const panic = summary.state === "ACTIVE" && !summary.upcoming && left <= PANIC_DAYS_LEFT;
   const ringUnit = covered ? (left === 0 ? "last day" : left === 1 ? "day left" : "days left") : summary.state === "UPCOMING" ? "days to start" : "days left";
 
   return (
-    <div className="hero-card hero-card--ring enter">
-      <Ring value={covered ? Math.max(left, 1) : 0} max={total} number={ringNumber} unit={ringUnit} color={RING_COLOR[summary.state]} />
+    <div className={`hero-card hero-card--ring enter${panic ? " hero-card--panic" : ""}`}>
+      <Ring value={covered ? Math.max(left, 1) : 0} max={total} number={ringNumber} unit={ringUnit} color={panic ? "var(--panic)" : RING_COLOR[summary.state]} />
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        <StateBadge state={summary.state} />
+        {panic ? (
+          <span className="panic-pill">
+            <PiWarningBold aria-hidden /> {left === 0 ? "Last day" : "Ends tomorrow"}
+          </span>
+        ) : (
+          <StateBadge state={summary.state} />
+        )}
         <h2>{sub?.planName ?? "No plan yet"}</h2>
-        {covered && chainEnd && <p className="muted">Valid till {formatDate(chainEnd)}</p>}
+        {covered && chainEnd && !panic && <p className="muted">Valid till {formatDate(chainEnd)}</p>}
+        {panic && chainEnd && <p className="panic-text">{left === 0 ? "Your plan ends today. Renew now so you don't miss a day." : `Your plan ends tomorrow, ${formatDate(chainEnd)}. Renew now.`}</p>}
+        {panic && renewHref && (
+          <ButtonLink href={renewHref} external variant="primary" icon={<PiWhatsappLogoBold />}>
+            Renew now
+          </ButtonLink>
+        )}
         {summary.state === "UPCOMING" && summary.upcoming && <p className="muted">Starts on {formatDate(summary.upcoming.startDate)}</p>}
         {(summary.state === "GRACE" || summary.state === "EXPIRED") && summary.current && (
           <p style={{ color: summary.state === "GRACE" ? "var(--warning)" : "var(--danger)", fontWeight: 600 }}>Ended on {formatDate(summary.current.endDate)}. Renew at the desk.</p>

@@ -1711,3 +1711,52 @@ a.stat:hover {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* A plan with a day or less left: the hero turns urgent (red ring, pulsing glow, a loud pill and a Renew button). */
+.hero-card--panic {
+  box-shadow: 0 0 0 2px var(--panic), 0 0 28px rgba(255, 90, 77, 0.45);
+  animation: panic-pulse 1.8s ease-in-out infinite;
+}
+@keyframes panic-pulse {
+  50% {
+    box-shadow: 0 0 0 2px var(--panic), 0 0 44px rgba(255, 90, 77, 0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-card--panic {
+    animation: none;
+  }
+}
+.panic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--panic);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.panic-text {
+  max-width: 28ch;
+  color: #fff;
+  font-weight: 600;
+}
+.hero-card--panic .ring__number {
+  color: var(--panic);
+}
+.hero-card--panic .btn {
+  min-width: 220px;
+  background: var(--panic);
+  border-color: var(--panic);
+  color: #fff;
+  font-weight: 800;
+}
+.hero-card--panic .btn:hover {
+  background: #ff7266;
+  border-color: #ff7266;
+}

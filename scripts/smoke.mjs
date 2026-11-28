@@ -249,7 +249,7 @@ r = await admin.post(`/api/dev/cron?date=${day}`);
 ok(r.status === 200, "cron runs for a chosen date", r.body);
 r = await owner.get(`${G}/followups`);
 const ex = r.body.items.filter((f) => f.member.id === raviId && f.type === "EXPIRY_M5");
-ok(ex.length === 1 && ex[0].message.includes("5 din") && ex[0].message.includes("*Quarterly* plan") && ex[0].message.includes("Team "), "follow-up list has the 5-day expiry reminder with the friendly renewal message", r.body.items);
+ok(ex.length === 1 && ex[0].message.includes("5 days") && ex[0].message.includes("*Quarterly* plan") && ex[0].message.includes("Team "), "follow-up list has the 5-day expiry reminder with the friendly renewal message", r.body.items);
 r = await admin.post(`/api/dev/cron?date=${day}`);
 ok(r.body.daily.find((d) => d.gymId === gymId)?.skipped === true, "second run the same day is skipped");
 r = await owner.get(`${G}/followups`);

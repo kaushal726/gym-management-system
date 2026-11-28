@@ -47,6 +47,8 @@
   --panel-muted: rgba(255, 255, 255, 0.7);
   --panel-accent: #5eead4;
   --panel-warn: #fcc15a;
+  /* A plan about to end: a loud red on the dark hero. */
+  --panic: #ff5a4d;
 
   --art-fur: #f4a95b;
   --art-fur-dark: #d9823a;

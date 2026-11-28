@@ -15,18 +15,18 @@ describe("renewalPitch", () => {
       expect(text).not.toMatch(/undefined|null|NaN|\[object/);
       expect(text.length).toBeGreaterThan(80);
       expect(text.length).toBeLessThan(900);
-      if (daysLeft >= 2) expect(text).toContain(`${daysLeft} din`);
+      if (daysLeft >= 2) expect(text).toContain(`${daysLeft} days`);
       // The last day says "today", every other message names the date.
       if (daysLeft !== 0) expect(text).toContain("28 Dec");
     }
   });
 
   it("changes its message at the right moments", () => {
-    expect(renewalPitch({ ...ctx, daysLeft: 3 })).toContain("bas 3 din bache");
-    expect(renewalPitch({ ...ctx, daysLeft: 1 })).toContain("Kal");
+    expect(renewalPitch({ ...ctx, daysLeft: 3 })).toContain("just 3 days to go");
+    expect(renewalPitch({ ...ctx, daysLeft: 1 })).toContain("ends tomorrow");
     expect(renewalPitch({ ...ctx, daysLeft: 0 })).toContain("last day");
-    expect(renewalPitch({ ...ctx, daysLeft: -2 })).toContain("khatam ho gaya");
-    expect(renewalPitch({ ...ctx, daysLeft: -30 })).toContain("kami mehsoos");
+    expect(renewalPitch({ ...ctx, daysLeft: -2 })).toContain("ended on");
+    expect(renewalPitch({ ...ctx, daysLeft: -30 })).toContain("We miss you");
   });
 
   it("copes with no plan name, no date and a one-word or odd name", () => {
@@ -48,7 +48,7 @@ describe("whatsappText", () => {
       if (["EXPIRY_M5", "EXPIRY_M1", "EXPIRY_0", "EXPIRED_P3", "RENEW_P7", "RENEW_P15"].includes(type)) expect(text).toContain("Team Titan Gym");
       else expect(text).not.toContain("Team Titan Gym");
     }
-    expect(whatsappText("EXPIRY_M5", { ...ctx, duePaise: 0 })).toContain("5 din");
+    expect(whatsappText("EXPIRY_M5", { ...ctx, duePaise: 0 })).toContain("5 days");
     expect(whatsappText("DUES", withPlan)).toContain("₹500");
   });
 });
@@ -71,8 +71,8 @@ describe("memberWhatsappText", () => {
     for (let daysLeft = 0; daysLeft <= ENDING_SOON_DAYS; daysLeft++) {
       expect(memberWhatsappText(standing({ daysLeft, current: plan(daysLeft) }), who)).toContain("Team Titan Gym");
     }
-    expect(memberWhatsappText(standing({ state: "FROZEN", daysLeft: 3 }), who)).toContain("3 din");
-    expect(memberWhatsappText(standing({ state: "GRACE", daysLeft: null, daysSinceEnd: 2, current: plan(-2) }), who)).toContain("khatam ho gaya");
-    expect(memberWhatsappText(standing({ state: "EXPIRED", daysLeft: null, daysSinceEnd: 90, current: plan(-90) }), who)).toContain("kami mehsoos");
+    expect(memberWhatsappText(standing({ state: "FROZEN", daysLeft: 3 }), who)).toContain("3 days");
+    expect(memberWhatsappText(standing({ state: "GRACE", daysLeft: null, daysSinceEnd: 2, current: plan(-2) }), who)).toContain("ended on");
+    expect(memberWhatsappText(standing({ state: "EXPIRED", daysLeft: null, daysSinceEnd: 90, current: plan(-90) }), who)).toContain("We miss you");
   });
 });
