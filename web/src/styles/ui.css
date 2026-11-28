@@ -1602,6 +1602,16 @@ a.stat:hover {
   }
 }
 
+/* Empty room at the end of a page that has a floating button, so the button never sits on top of the footer line. */
+.shell__scroll:has(.fab) {
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 52px + var(--space-6));
+}
+@media (min-width: 1024px) {
+  .shell__scroll:has(.fab) {
+    padding-bottom: var(--space-8);
+  }
+}
+
 /* The gym's own GymDesk plan: a quiet line, and a card once it is about to end. */
 .plan-line {
   color: var(--text-3);
@@ -1676,7 +1686,7 @@ a.stat:hover {
   text-transform: uppercase;
 }
 
-/* "Made with love by ..." at the foot of every page: small and faint, so it is there but never in the way. */
+/* "Made by ..." at the foot of every page: small and faint, so it is there but never in the way. */
 .made-by {
   display: flex;
   align-items: center;
@@ -1690,10 +1700,9 @@ a.stat:hover {
   text-align: center;
   opacity: 0.55;
 }
-.made-by__heart {
-  width: 10px;
-  height: 10px;
-  color: #e0475b;
+.made-by strong {
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 /* Reminders that are already on: one quiet line at the very bottom of the page, not a card in the middle of it. */
