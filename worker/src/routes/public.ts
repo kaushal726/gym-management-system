@@ -70,6 +70,9 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
   const phoneTaken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND phone = ?2").bind(gym.id, phone).first();
   if (phoneTaken) throw new ApiError(409, MESSAGES.duplicatePhone, "phone");
 
+  const emailTaken = await c.env.DB.prepare("SELECT 1 FROM members WHERE gym_id = ?1 AND invite_email = ?2").bind(gym.id, user.email.toLowerCase()).first();
+  if (emailTaken) throw new ApiError(409, "This Gmail is already registered at this gym. Please see the desk.", "email");
+
   const id = newId();
   const now = nowIso();
   const row = {
@@ -85,10 +88,10 @@ publicRoutes.post("/gyms/:slug/register", requireUser, async (c) => {
   };
   await c.env.DB.batch([
     c.env.DB.prepare(
-      `INSERT INTO members (id, gym_id, user_id, name, phone, dob, gender, emergency_name, emergency_phone, guardian_name, guardian_phone,
+      `INSERT INTO members (id, gym_id, user_id, invite_email, name, phone, dob, gender, emergency_name, emergency_phone, guardian_name, guardian_phone,
          source, status, request_no, consent_at, created_by, created_at, batch)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'QR', 'PENDING', (SELECT next_request_no FROM gyms WHERE id = ?2), ?12, ?3, ?12, ?13)`,
-    ).bind(id, gym.id, user.id, row.name, row.phone, row.dob, row.gender, row.emergencyName, row.emergencyPhone, row.guardianName, row.guardianPhone, now, row.batch),
+       VALUES (?1, ?2, ?3, ?14, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'QR', 'PENDING', (SELECT next_request_no FROM gyms WHERE id = ?2), ?12, ?3, ?12, ?13)`,
+    ).bind(id, gym.id, user.id, row.name, row.phone, row.dob, row.gender, row.emergencyName, row.emergencyPhone, row.guardianName, row.guardianPhone, now, row.batch, user.email.toLowerCase()),
     c.env.DB.prepare("UPDATE gyms SET next_request_no = next_request_no + 1 WHERE id = ?1").bind(gym.id),
     auditStatement(c.env.DB, { gymId: gym.id, actorId: user.id, action: "MEMBER_REGISTER", entity: "member", entityId: id, after: row }),
   ]);

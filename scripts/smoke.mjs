@@ -113,6 +113,8 @@ r = await ravi.post(`/api/public/gyms/${slug}/register`, reg);
 ok(r.status === 200 && r.body.memberId === raviId, "registering twice returns the same request");
 r = await copycat.post(`/api/public/gyms/${slug}/register`, { ...reg, name: "Copy Cat" });
 ok(r.status === 409 && r.body.field === "phone", "someone else cannot register the same phone", r.body);
+r = await owner.get(`${G}/members/${raviId}`);
+ok(r.body.member.inviteEmail === `ravi-${RUN}@gymdesk.test` && r.body.member.linkedEmail === `ravi-${RUN}@gymdesk.test`, "a QR sign-up saves their Gmail on the member record", r.body.member);
 r = await ravi.get(`/api/public/gyms/${slug}`);
 ok(r.body.member?.status === "PENDING" && r.body.member.requestNo === 1, "member sees the pending screen with request number 1", r.body);
 
@@ -671,6 +673,10 @@ r = await asha.call("PATCH", ME, { ...ashaEdit, email: `taken-${RUN}@gymdesk.tes
 ok(r.status === 200, "extra fields in the request are ignored", r.body);
 r = await newOwner.get(`${G}/members/${ashaBefore.id}`);
 ok(r.body.member.linkedEmail === `asha-${RUN}@gymdesk.test` && r.body.member.inviteEmail === null && r.body.member.status === ashaBefore.status, "her Gmail, link and status can't be changed this way", r.body.member);
+r = await newOwner.patch(`${G}/members/${ashaBefore.id}`, { ...ashaEdit, email: `asha-${RUN}@gymdesk.test` });
+ok(r.status === 200, "the desk can save a linked member's form with their own Gmail shown in it", r.body);
+r = await newOwner.get(`${G}/members/${ashaBefore.id}`);
+ok(r.body.member.inviteEmail === `asha-${RUN}@gymdesk.test`, "saving it records the Gmail on the member", r.body.member);
 r = await asha.call("PATCH", ME, { ...ashaEdit, phone: phone(901) });
 ok(r.status === 409 && r.body.field === "phone", "she can't take a number another member here has", r.body);
 r = await asha.call("PATCH", ME, { ...ashaEdit, phone: "12345" });
