@@ -488,6 +488,67 @@ button.list-row:hover {
   text-align: right;
 }
 
+/* A member card row: taller than a plain list row, so the owner sees contact, plan, end date and dues without opening it. */
+.member-card {
+  align-items: flex-start;
+  padding-block: var(--space-4);
+}
+.member-card .avatar {
+  flex: none;
+}
+.member-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.member-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.member-card__name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-base);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.member-card__line {
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.member-card__plan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.member-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px var(--space-3);
+}
+.member-card__aside {
+  color: var(--text-3);
+}
+.member-card__warning {
+  color: var(--warning);
+  font-weight: 650;
+}
+.member-card__danger {
+  color: var(--danger);
+  font-weight: 650;
+}
+
 /* ---------- Badges, avatar ---------- */
 .badge {
   display: inline-flex;
@@ -1686,27 +1747,27 @@ a.stat:hover {
   text-transform: uppercase;
 }
 
-/* "Made by ..." at the foot of every page: small and faint, so it is there but never in the way. */
+/* The maker line at the foot of every page: the mark in full colour, the words small beneath it. */
 .made-by {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-2);
   padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+.made-by__mark {
+  width: 48px;
+  height: 39px;
+  flex: none;
+}
+.made-by__text {
   color: var(--text-3);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  text-align: center;
-}
-.made-by > :not(.made-by__mark) {
-  opacity: 0.55;
-}
-.made-by__mark {
-  width: 14px;
-  height: 11px;
-  flex: none;
-  opacity: 0.9;
+  opacity: 0.6;
 }
 .made-by strong {
   font-weight: 700;

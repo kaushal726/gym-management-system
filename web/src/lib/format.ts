@@ -25,6 +25,18 @@ export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
 }
 
+/** "just now", "5 minutes ago", "2 hours ago", "3 days ago"; older than a week falls back to the date. */
+export function formatAgo(iso: string, now: number = Date.now()): string {
+  const minutes = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${plural(minutes, "minute")} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${plural(hours, "hour")} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 8) return `${plural(days, "day")} ago`;
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
