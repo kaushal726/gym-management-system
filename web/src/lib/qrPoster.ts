@@ -14,7 +14,7 @@ const CARD_TOP = 490;
 const CARD_PAD = 30;
 const INK = "#0e0e10";
 const MUTED = "rgba(255, 255, 255, 0.62)";
-const DEFAULT_ACCENT = "#5eead4";
+const DEFAULT_ACCENT = "#3b9cf0";
 /** The photo on every gym's poster: one of the global gym photos (public/gyms/default). */
 const POSTER_PHOTO = "/gyms/default/gym-dark-tall-1280.webp";
 const FONT = '"Archivo Variable", "Archivo", system-ui, sans-serif';
