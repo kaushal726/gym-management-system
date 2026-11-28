@@ -93,7 +93,7 @@ export function PlatformGymPage({ gymId }: { gymId: string }) {
         {gym.status === "ACTIVE" && gym.access === "PAUSED" && <Notice tone="danger">Paused automatically: the plan ended on {formatDate(gym.validTill)} and the {SAAS_GRACE_DAYS}-day grace is over. Record a payment to reopen.</Notice>}
         {gym.access === "GRACE" && <Notice tone="warning">The plan ended on {formatDate(gym.validTill)}. It pauses itself after {SAAS_GRACE_DAYS} days.</Notice>}
         {gym.ownerEmail === session?.user?.email && <Notice tone="warning">The owner is your platform email. Change it to the gym owner's own Gmail.</Notice>}
-        <ButtonLink href={`/platform/gyms/${gym.id}/owner-view`} variant="primary" icon={<PiEyeBold />} block>
+        <ButtonLink href={`/admin/${gym.id}`} variant="primary" icon={<PiEyeBold />} block>
           Open owner's view
         </ButtonLink>
         <div className="form-grid form-grid--2">

@@ -25,7 +25,7 @@ const DASHBOARD_PREVIEW = 5;
 const AUDIT_PAGE = 50;
 const MAX_REPORT_DAYS = 370;
 
-export function summarizeCollection(rows: { amount_paise: number; mode: PaymentMode; collected_by_name: string | null; voided_at: string | null }[]): CollectionSummary {
+function summarizeCollection(rows: { amount_paise: number; mode: PaymentMode; collected_by_name: string | null; voided_at: string | null }[]): CollectionSummary {
   const byMode: Record<PaymentMode, number> = { CASH: 0, UPI: 0, CARD: 0 };
   const byStaff = new Map<string, { totalPaise: number; count: number }>();
   let totalPaise = 0;
