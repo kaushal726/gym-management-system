@@ -1685,3 +1685,29 @@ a.stat:hover {
   height: 10px;
   color: #e0475b;
 }
+
+/* Reminders that are already on: one quiet line at the very bottom of the page, not a card in the middle of it. */
+.push-quiet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  color: var(--text-3);
+  font-size: var(--text-sm);
+}
+.push-quiet svg {
+  width: 16px;
+  height: 16px;
+}
+.push-quiet button {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

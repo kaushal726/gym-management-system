@@ -17,7 +17,7 @@ import { GymHero } from "./GymHero.tsx";
 import { EmptyState, ErrorState, Notice, Skeleton } from "../../components/ui/Feedback.tsx";
 import { Qr, upiLink } from "../../components/ui/Qr.tsx";
 import { FreezeList, MembershipHero, PaymentList, SubscriptionList, VisitSummary } from "./MemberSections.tsx";
-import { PushCard } from "./PushCard.tsx";
+import { PushCard, usePush } from "./PushCard.tsx";
 import { BATCH_LABEL } from "../../../../shared/constants.ts";
 import { InstallBanner } from "../../components/ui/InstallBanner.tsx";
 
@@ -50,6 +50,7 @@ function MemberView({ gymId }: { gymId: string }) {
   const toast = useToast();
   const { data, error, loading, reload } = useApi<MeMembership>(`/public/me/gyms/${gymId}`);
   const [editing, setEditing] = useState(false);
+  const push = usePush();
   useGymBrand(data?.gym.id);
   const gyms = session?.memberOf ?? [];
   const switcher =
@@ -154,7 +155,7 @@ function MemberView({ gymId }: { gymId: string }) {
 
           <InstallBanner text="See your plan and get reminders like an app." />
           {gym.checkinEnabled && <VisitSummary visits={data.visits} today={data.today} />}
-          <PushCard />
+          {push.status !== "on" && <PushCard push={push} />}
         </div>
         <div className="member-grid__main">
           <section className="card">
@@ -232,6 +233,7 @@ function MemberView({ gymId }: { gymId: string }) {
           )}
         </div>
       </div>
+      {push.status === "on" && <PushCard push={push} quiet />}
       <MemberFormSheet
         open={editing}
         gymId={gym.id}
