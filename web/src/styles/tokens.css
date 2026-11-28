@@ -39,7 +39,7 @@
   --accent-ink: var(--accent);
   --accent-glow: rgba(13, 148, 136, 0.35);
   /* How much the rotating hero photos (HeroSlides) are softened; the same for every gym. */
-  --brand-photo-blur: 1px;
+  --brand-photo-blur: 0.5px;
   --on-accent: #ffffff;
 
   --panel-bg: #0e0e10;

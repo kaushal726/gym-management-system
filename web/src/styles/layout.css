@@ -299,19 +299,6 @@
   justify-content: center;
   gap: var(--space-5);
 }
-.fab {
-  position: fixed;
-  right: var(--space-4);
-  bottom: calc(var(--bottom-nav-height) + var(--space-4) + env(safe-area-inset-bottom));
-  z-index: 25;
-  box-shadow: var(--shadow-pop);
-  border-radius: var(--radius-pill);
-}
-@media (min-width: 1024px) {
-  .fab {
-    display: none;
-  }
-}
 .hide-mobile {
   display: none;
 }
@@ -901,7 +888,7 @@
   background: linear-gradient(180deg, rgba(14, 14, 16, 0) 0%, rgba(14, 14, 16, 0.2) 30%, rgba(14, 14, 16, 0.78) 68%, rgba(14, 14, 16, 0.97) 100%);
 }
 /* Behind every gym hero the same global photos take turns. A photo stays perfectly still while it is
- * shown; it only moves when it changes: the next one settles in (fading in from a slightly bigger size) while the one
+ * shown; it only moves when it changes: the next one settles in (fading in from a very slightly bigger size) while the one
  * before fades away. Six slides of 7 seconds make a 42 second loop. If you add or remove a photo, change the 42s, the 7s
  * and the percentages (one slide = 100% / count). */
 .hero-slides {
@@ -916,8 +903,6 @@
   background: var(--slide-tall) 50% 85% / cover no-repeat;
   filter: blur(var(--brand-photo-blur));
   opacity: 0;
-  transform: scale(1.18);
-  transform-origin: 50% 100%;
   animation: hero-slide 42s ease-in-out infinite;
   animation-delay: calc(var(--i) * 7s);
   will-change: opacity, transform;
@@ -938,11 +923,11 @@
 @keyframes hero-slide {
   0% {
     opacity: 0;
-    transform: scale(1.26);
+    transform: scale(1.05);
   }
   8%,
   100% {
-    transform: scale(1.18);
+    transform: scale(1);
   }
   8%,
   16.67% {

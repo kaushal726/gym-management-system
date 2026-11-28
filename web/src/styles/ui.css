@@ -591,6 +591,28 @@ button.list-row:hover {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+/* Exactly two cards: always two equal columns across the full width, never two small cards with a gap beside them. */
+.stats.stats--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 900px) {
+  .stats.stats--5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.stats--2 .stat {
+  padding: var(--space-5);
+}
+.stats--2 .stat__label svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+@media (min-width: 900px) {
+  .stats--2 .stat__value {
+    font-size: 52px;
+  }
+}
 .stat {
   display: flex;
   flex-direction: column;

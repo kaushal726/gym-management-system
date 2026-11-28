@@ -1,7 +1,7 @@
 /* /platform — the SaaS console. Every gym with its health (never its money), filters by plan state,
  * and onboarding a new gym with its one owner. */
 import { useState } from "react";
-import { PiBuildingsDuotone, PiPlusBold, PiWarningBold } from "react-icons/pi";
+import { PiBuildingsDuotone, PiPlusBold, PiUsersThreeDuotone, PiWarningBold } from "react-icons/pi";
 import type { PlatformGym } from "../../../../shared/api.ts";
 import { GYM_ACCESS_LABEL, type GymAccess } from "../../../../shared/saas.ts";
 import { formatDate } from "../../lib/format.ts";
@@ -56,13 +56,17 @@ export function PlatformPage() {
       </div>
 
       {data && (
-        <div className="stats enter-stagger">
+        <div className="stats stats--2 enter-stagger">
           <div className="stat">
-            <span className="stat__label">Gyms</span>
+            <span className="stat__label">
+              <PiBuildingsDuotone aria-hidden /> Gyms
+            </span>
             <span className="stat__value">{count("all")}</span>
           </div>
           <div className="stat">
-            <span className="stat__label">Active members</span>
+            <span className="stat__label">
+              <PiUsersThreeDuotone aria-hidden /> Active members
+            </span>
             <span className="stat__value">{totalActiveMembers}</span>
           </div>
         </div>
