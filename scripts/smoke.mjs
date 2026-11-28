@@ -435,9 +435,15 @@ ok(r.status === 410, "a guessed claim link does nothing");
 r = await outsider.call("POST", "/api/auth/dev", { email: "kausraj11@gmail.com", name: "x" });
 ok(r.status === 400, "dev sign-in refuses real Gmail addresses");
 r = await outsider.call("POST", "/api/auth/push/subscribe", { endpoint: "https://evil.example/x", keys: { p256dh: "a", auth: "b" } });
-ok(r.status === 200, "a user can only register push for themselves");
+ok(r.status === 400, "a push address that isn't a browser push service is refused");
+r = await outsider.call("POST", "/api/auth/push/subscribe", { endpoint: "https://fcm.googleapis.com/fcm/send/smoke", keys: { p256dh: "a", auth: "b" } });
+ok(r.status === 200, "a browser push service address is accepted");
 r = await newOwner.get(`${G}/audit`);
 ok(r.body.items.length === auditBefore, "none of those attempts changed anything in the gym");
+for (const path of ["/api/auth/config", "/", "/no-such-page"]) {
+  const res = await fetch(`${BASE}${path}`);
+  ok(res.headers.get("x-frame-options") === "DENY" && /frame-ancestors 'none'/.test(res.headers.get("content-security-policy") ?? "") && res.headers.get("x-content-type-options") === "nosniff", `${path} cannot be put in a frame and is not type-sniffed`);
+}
 const crossOrigin = await fetch(`${BASE}${G}/members`, { email: `auto3-${RUN}@gymdesk.test`, method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: newOwner.cookie }, body: "{}" });
 ok(crossOrigin.status === 403, "a request from another website is refused even with the owner's cookie");
 
