@@ -1,7 +1,7 @@
 /* The staff app frame: sidebar on desktop; top bar, bottom nav and a "More" sheet on phones. */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { PiArrowsClockwiseBold, PiBuildingsBold, PiChartBarBold, PiCheckSquareBold, PiGearSixBold, PiHouseBold, PiListBold, PiPhoneCallBold, PiPlusBold, PiQrCodeBold, PiRepeatBold, PiShieldCheckBold, PiSignOutBold, PiStackBold, PiUserCheckBold, PiUsersThreeBold } from "react-icons/pi";
-import type { GymSettings } from "../../../../shared/api.ts";
+import type { GymSettings, PlatformGymDetail, StaffGym } from "../../../../shared/api.ts";
 import type { StaffRole } from "../../../../shared/constants.ts";
 import { syncCheckins } from "../../lib/offlineCheckins.ts";
 import { ROLE_LABEL } from "../../lib/states.ts";
@@ -18,7 +18,6 @@ import { ApiRequestError } from "../../lib/api.ts";
 import { gymIsOpen } from "../../../../shared/saas.ts";
 import { PlanAlert } from "./PlanStatus.tsx";
 import { MadeBy } from "../../components/ui/MadeBy.tsx";
-import type { StaffGym } from "../../../../shared/api.ts";
 
 interface AdminContextValue {
   gymId: string;
@@ -29,6 +28,8 @@ interface AdminContextValue {
   gym: GymSettings;
   reloadGym: () => void;
   base: string;
+  /** The platform admin looking at a gym that isn't theirs: every page shows what the owner sees, and changes are refused. */
+  viewing: boolean;
 }
 
 const AdminContext = createContext<AdminContextValue | null>(null);
@@ -82,12 +83,28 @@ function otherGymButtons(staffOf: StaffGym[], gymId: string) {
   );
 }
 
+function ShellSkeleton() {
+  return (
+    <div className="shell">
+      <div className="shell__main">
+        <div className="page">
+          <Skeleton width={180} height={28} />
+          <Skeleton height={120} radius={12} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminShell({ gymId, children }: { gymId: string; children: ReactNode }) {
   const { session, signOut } = useSession();
   const path = usePath();
   const toast = useToast();
   const [moreOpen, setMoreOpen] = useState(false);
-  const staff = session?.staffOf.find((s) => s.gymId === gymId);
+  const ownStaff = session?.staffOf.find((s) => s.gymId === gymId);
+  const viewing = !ownStaff && !!session?.isPlatformAdmin;
+  const viewedGym = useApi<PlatformGymDetail>(viewing ? `/platform/gyms/${gymId}` : null);
+  const staff: StaffGym | undefined = ownStaff ?? (viewedGym.data ? { gymId, gymName: viewedGym.data.gym.name, gymSlug: viewedGym.data.gym.slug, role: "OWNER", access: viewedGym.data.gym.access, validTill: viewedGym.data.gym.validTill } : undefined);
   const gym = useApi<GymSettings>(staff ? `/gyms/${gymId}/settings` : null);
   const base = `/admin/${gymId}`;
 
@@ -101,6 +118,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
     return () => window.removeEventListener("online", sync);
   }, [toast]);
 
+  if (!staff && viewing && viewedGym.loading) return <ShellSkeleton />;
   if (!staff) {
     return (
       <StatusScreen
@@ -120,7 +138,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
     );
   }
   const pausedByServer = gym.error instanceof ApiRequestError && gym.error.code === "GYM_PAUSED";
-  if (!gymIsOpen(staff.access) || pausedByServer) {
+  if (!viewing && (!gymIsOpen(staff.access) || pausedByServer)) {
     return (
       <StatusScreen
         art="sleeping"
@@ -144,18 +162,7 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
       />
     );
   }
-  if (!gym.data) {
-    return (
-      <div className="shell">
-        <div className="shell__main">
-          <div className="page">
-            <Skeleton width={180} height={28} />
-            <Skeleton height={120} radius={12} />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!gym.data) return <ShellSkeleton />;
 
   const isOwner = staff.role === "OWNER";
   const items = navItems(base).filter((i) => (!i.ownerOnly || isOwner) && (!i.needsCheckin || gym.data!.checkinEnabled));
@@ -164,20 +171,26 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
   const current = items.find((i) => isCurrent(path, i.href, base));
 
   return (
-    <AdminContext.Provider value={{ gymId, plan: { access: staff.access, validTill: staff.validTill }, role: staff.role, isOwner, gym: gym.data, reloadGym: gym.reload, base }}>
+    <AdminContext.Provider value={{ gymId, plan: { access: staff.access, validTill: staff.validTill }, role: staff.role, isOwner, gym: gym.data, reloadGym: gym.reload, base, viewing }}>
       <div className="shell">
         <aside className="shell__sidebar" aria-label="Main">
           <div className="brand">
             <BrandMark size={36} />
             <div style={{ minWidth: 0 }}>
               <div className="brand__name">{gym.data.name}</div>
-              <div className="brand__sub">{ROLE_LABEL[staff.role]}</div>
+              <div className="brand__sub">{viewing ? "Owner's view" : ROLE_LABEL[staff.role]}</div>
             </div>
           </div>
           <ButtonLink href={`${base}/members?add=1`} variant="accent" block icon={<PiPlusBold />}>
             Add member
           </ButtonLink>
           <nav className="side-nav" style={{ marginTop: 16 }}>
+            {viewing && (
+              <Link href={`/platform/gyms/${gymId}`} className="side-nav__item">
+                <PiBuildingsBold />
+                Back to platform
+              </Link>
+            )}
             {items
               .filter((i) => i.group === "main")
               .map((i) => (
@@ -226,11 +239,11 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
             <BrandMark size={32} />
             <span className="topbar__center">
               <span className="topbar__title">{gym.data.name}</span>
-              <span className="topbar__sub">{ROLE_LABEL[staff.role]}</span>
+              <span className="topbar__sub">{viewing ? "Owner's view" : ROLE_LABEL[staff.role]}</span>
             </span>
           </header>
           <div className="shell__scroll">
-            <PlanAlert access={staff.access} validTill={staff.validTill} role={staff.role} />
+            {!viewing && <PlanAlert access={staff.access} validTill={staff.validTill} role={staff.role} />}
             {children}
             <MadeBy />
           </div>
@@ -251,6 +264,14 @@ export function AdminShell({ gymId, children }: { gymId: string; children: React
 
       <Sheet open={moreOpen} title="More" onClose={() => setMoreOpen(false)}>
         <div className="list" style={{ margin: "0 -20px" }}>
+          {viewing && (
+            <Link href={`/platform/gyms/${gymId}`} className="list-row" onClick={() => setMoreOpen(false)}>
+              <PiBuildingsBold />
+              <span className="list-row__main">
+                <span className="list-row__title">Back to platform</span>
+              </span>
+            </Link>
+          )}
           {items.slice(3).map((i) => (
             <Link key={i.href} href={i.href} className="list-row" onClick={() => setMoreOpen(false)}>
               {i.icon}

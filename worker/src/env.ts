@@ -23,6 +23,8 @@ export interface Env {
 export interface StaffContext {
   gym: GymRow;
   role: StaffGym["role"];
+  /** The platform admin looking at a gym that is not theirs: sees what its owner sees, changes nothing. */
+  viewOnly: boolean;
 }
 
 export type AppEnv = {

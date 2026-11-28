@@ -312,25 +312,29 @@ r = await admin.get(`/api/platform/gyms/${gymId}`);
 ok(r.status === 200 && r.body.gym.members >= 2 && r.body.gym.activeMembers >= 1 && r.body.gym.ownerEmail === `owner-${RUN}@gymdesk.test`, "platform sees the gym's health", r.body.gym);
 ok(!JSON.stringify(r.body.gym).match(/due|collect|revenue/i), "platform gym summary carries no member money");
 const P = `/api/platform/gyms/${gymId}`;
-r = await admin.get(`${P}/overview`);
-ok(r.status === 200 && r.body.counts.active >= 1 && Array.isArray(r.body.plans) && r.body.settings.name === "Iron Paradise" && typeof r.body.collectedMonthPaise === "number", "platform admin gets the gym's numbers, plans and settings (owner's view)", r.body);
-ok(!/Ravi|Asha|Copy Cat|Sharma|Verma|ravi-|asha-|copy-/i.test(JSON.stringify(r.body)), "the owner's view summary itself carries no member name, phone or email", r.body);
-r = await admin.get(`${P}/members`);
-ok(r.status === 200 && r.body.counts.all >= 2 && r.body.items.some((m) => m.name === "Ravi Sharma"), "platform admin sees the gym's member list (read-only)", r.body.counts);
-r = await admin.get(`${P}/members?filter=active&q=ravi`);
-ok(r.status === 200 && r.body.items.every((m) => /ravi/i.test(m.name)), "the platform member list filters and searches like the owner's", r.body.items.length);
-r = await owner.get(`${P}/members`);
-ok(r.status === 403, "a gym owner cannot use the platform member list");
-r = await admin.post(`${P}/members`, {});
-ok(r.status === 404 || r.status === 405, "the platform member list is read-only (no POST)", r.status);
-r = await admin.get("/api/platform/gyms/no-such-gym/overview");
+// The platform admin opens any gym as its owner would see it: every page reads, nothing changes
+r = await admin.get(`${G}/dashboard`);
+ok(r.status === 200, "platform admin opens the gym's Today page as its owner", r.status);
+r = await admin.get(`${G}/members`);
+ok(r.status === 200 && r.body.items.some((m) => m.name === "Ravi Sharma"), "platform admin sees the gym's member list", r.body.counts);
+r = await admin.get(`${G}/members/${raviId}`);
+ok(r.status === 200 && r.body.member.name === "Ravi Sharma", "platform admin opens a member's page", r.status);
+for (const path of ["/settings", "/plans", "/followups", "/staff", "/audit", "/reports/collections"]) {
+  r = await admin.get(`${G}${path}`);
+  ok(r.status === 200, `platform admin can read ${path} like the owner`, r.status);
+}
+r = await admin.post(`${G}/members`, { name: "Nope", phone: phone(990), email: `nope-${RUN}@gymdesk.test` });
+ok(r.status === 403 && r.body.code === "VIEW_ONLY", "platform admin cannot add a member from the owner's view", r.body);
+r = await admin.patch(`${G}/settings`, { name: "Hacked" });
+ok(r.status === 403 && r.body.code === "VIEW_ONLY", "platform admin cannot change the gym's settings from the owner's view", r.body);
+r = await admin.get(`/api/gyms/no-such-gym/dashboard`);
 ok(r.status === 404, "the owner's view of an unknown gym is 404");
-r = await admin.post(`${P}/overview`, {});
-ok(r.status === 404 || r.status === 405, "the owner's view is read-only (no POST)", r.status);
 r = await admin.post(`${P}/pause`, { reason: "Payment pending" });
 ok(r.status === 200, "platform pauses the gym");
 r = await owner.get(`${G}/dashboard`);
 ok(r.status === 403 && r.body.code === "GYM_PAUSED", "paused gym locks staff out", r.body);
+r = await admin.get(`${G}/dashboard`);
+ok(r.status === 200, "platform admin can still look at a paused gym", r.status);
 r = await owner.get("/api/auth/session");
 ok(r.body.staffOf.find((s) => s.gymId === gymId)?.access === "PAUSED", "session tells the app the gym is paused");
 r = await ravi.get(`/api/public/me/gyms/${gymId}`);
@@ -397,7 +401,7 @@ const gymCalls = [
   ["PATCH", `/members/${raviId}`], ["PATCH", `/subscriptions/${memberSub}`], ["PATCH", "/settings"], ["PATCH", `/plans/${monthly}`], ["PATCH", `/staff/${encodeURIComponent(`newowner-${RUN}@gymdesk.test`)}`],
 ];
 const platformCalls = [
-  ["GET", "/gyms"], ["GET", `/gyms/${gymId}`], ["GET", `/gyms/${gymId}/overview`], ["GET", `/gyms/${gymId}/members`], ["POST", "/gyms"], ["PATCH", `/gyms/${gymId}`], ["POST", `/gyms/${gymId}/pause`], ["POST", `/gyms/${gymId}/resume`],
+  ["GET", "/gyms"], ["GET", `/gyms/${gymId}`], ["POST", "/gyms"], ["PATCH", `/gyms/${gymId}`], ["POST", `/gyms/${gymId}/pause`], ["POST", `/gyms/${gymId}/resume`],
   ["POST", `/gyms/${gymId}/archive`], ["POST", `/gyms/${gymId}/restore`], ["POST", `/gyms/${gymId}/owner`], ["POST", `/gyms/${gymId}/billing`], ["POST", "/signup-gym"],
 ];
 const call = (client, method, path) => client.call(method, path, method === "GET" ? undefined : { reason: "x", email: `random-${RUN}@gymdesk.test`, name: "x" });

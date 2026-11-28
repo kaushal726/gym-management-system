@@ -439,19 +439,6 @@ export interface PlatformGymDetail {
   billing: GymBillingEntry[];
 }
 
-/** What the platform admin sees at the top of a gym's owner's view: its numbers, plans and settings. The member list is a separate call. */
-export interface GymOverview {
-  today: IsoDate;
-  counts: { active: number; expiringSoon: number; grace: number; expired: number; frozen: number; pending: number; withDues: number };
-  duesTotalPaise: Paise;
-  collectedTodayPaise: Paise;
-  collectedMonthPaise: Paise;
-  /** Today's collection by how it was paid. */
-  collectedTodayByMode: Record<PaymentMode, Paise>;
-  plans: Plan[];
-  settings: GymSettings;
-}
-
 export interface GymBillingInput {
   planName: string;
   amountPaise: Paise;

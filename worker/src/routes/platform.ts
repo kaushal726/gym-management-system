@@ -2,8 +2,7 @@
  * money), set the gym's own plan and valid-till date, pause/resume, archive, edit details, change the owner.
  * Self-serve signup (ALLOW_GYM_SIGNUP=1) uses the same createGym. */
 import { Hono, type Context } from "hono";
-import type { GymOverview, MemberFilter, MemberListItem, PlatformGym, PlatformGymDetail, Plan } from "../../../shared/api.ts";
-import { MEMBER_FILTERS } from "../../../shared/api.ts";
+import type { PlatformGym, PlatformGymDetail } from "../../../shared/api.ts";
 import { DEFAULT_GRACE_DAYS, DEFAULT_REMINDER_HOUR, DEFAULT_TIME_ZONE, SLUG_PATTERN } from "../../../shared/constants.ts";
 import { todayIn } from "../../../shared/dates.ts";
 import { MAX_AMOUNT_PAISE } from "../../../shared/money.ts";
@@ -14,10 +13,7 @@ import { auditStatement } from "../lib/audit.ts";
 import { ApiError, badInput, conflict, forbidden, notFound } from "../lib/http.ts";
 import { newId, nowIso } from "../lib/ids.ts";
 import { asBody, date, email, int, oneOf, optionalDate, optionalText, text, type Body } from "../lib/validate.ts";
-import { accessOf, toGymSettings, toPlan, type GymRow, type PlanRow } from "../db/rows.ts";
-import { loadRoster, paymentsBetween, toListItem } from "../db/queries.ts";
-import { matchesFilter, matchesSearch } from "../../../shared/filters.ts";
-import { summarizeCollection } from "./admin/gym.ts";
+import { accessOf, type GymRow } from "../db/rows.ts";
 
 export const platformRoutes = new Hono<AppEnv>();
 
@@ -155,53 +151,6 @@ platformRoutes.get("/gyms/:id", requirePlatformAdmin, async (c) => {
       createdAt: b.created_at,
     })),
   });
-});
-
-/**
- * The owner's view for the platform admin, read-only: the gym's numbers, plans and settings here, and its member list
- * below (same rows the owner sees). No member detail, payments or follow-ups, and nothing can be changed from here.
- */
-platformRoutes.get("/gyms/:id/overview", requirePlatformAdmin, async (c) => {
-  const gym = await c.env.DB.prepare("SELECT * FROM gyms WHERE id = ?1").bind(c.req.param("id")).first<GymRow>();
-  if (!gym) throw notFound();
-  const today = todayIn(gym.timezone);
-  const [roster, plans, payments] = await Promise.all([
-    loadRoster(c.env.DB, gym, today),
-    c.env.DB.prepare("SELECT * FROM plans WHERE gym_id = ?1 ORDER BY active DESC, kind, price_paise").bind(gym.id).all<PlanRow>(),
-    paymentsBetween(c.env.DB, gym.id, `${today.slice(0, 8)}01`, today),
-  ]);
-  const items = roster.map((e) => toListItem(e, today));
-  const count = (f: Parameters<typeof matchesFilter>[1]) => items.filter((i) => matchesFilter(i, f)).length;
-  const todayRows = summarizeCollection(payments.filter((r) => r.paid_on === today));
-  return c.json<GymOverview>({
-    today,
-    counts: {
-      active: count("active"),
-      expiringSoon: count("expiring"),
-      grace: count("grace"),
-      expired: count("expired"),
-      frozen: count("frozen"),
-      pending: count("pending"),
-      withDues: count("dues"),
-    },
-    duesTotalPaise: items.filter((i) => !i.archived).reduce((sum, i) => sum + i.duePaise, 0),
-    collectedTodayPaise: todayRows.totalPaise,
-    collectedMonthPaise: summarizeCollection(payments).totalPaise,
-    collectedTodayByMode: todayRows.byMode,
-    plans: plans.results.map(toPlan) satisfies Plan[],
-    settings: toGymSettings(gym),
-  });
-});
-
-platformRoutes.get("/gyms/:id/members", requirePlatformAdmin, async (c) => {
-  const gym = await c.env.DB.prepare("SELECT * FROM gyms WHERE id = ?1").bind(c.req.param("id")).first<GymRow>();
-  if (!gym) throw notFound();
-  const today = todayIn(gym.timezone);
-  const filterParam = c.req.query("filter") ?? "all";
-  const filter: MemberFilter = (MEMBER_FILTERS as readonly string[]).includes(filterParam) ? (filterParam as MemberFilter) : "all";
-  const items = (await loadRoster(c.env.DB, gym, today)).map((e) => toListItem(e, today));
-  const counts = Object.fromEntries(MEMBER_FILTERS.map((f) => [f, items.filter((i) => matchesFilter(i, f)).length])) as Record<MemberFilter, number>;
-  return c.json<{ items: MemberListItem[]; counts: Record<MemberFilter, number> }>({ items: items.filter((i) => matchesFilter(i, filter) && matchesSearch(i, c.req.query("q") ?? "")), counts });
 });
 
 platformRoutes.post("/gyms", requirePlatformAdmin, async (c) => {

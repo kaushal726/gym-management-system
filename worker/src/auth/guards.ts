@@ -41,6 +41,17 @@ export const requirePlatformAdmin: MiddlewareHandler<AppEnv> = async (c, next) =
   await next();
 };
 
+const READ_METHODS = new Set(["GET", "HEAD"]);
+
+/** The platform admin may open any gym as its owner would see it, for reading only, even while it is paused. */
+async function viewerContext(c: Parameters<MiddlewareHandler<AppEnv>>[0], gymId: string): Promise<StaffContext | null> {
+  if (!isPlatformAdmin(c.env, currentUser(c).email)) return null;
+  const gym = await c.env.DB.prepare("SELECT * FROM gyms WHERE id = ?1").bind(gymId).first<GymRow>();
+  if (!gym) return null;
+  if (!READ_METHODS.has(c.req.method)) throw new ApiError(403, MESSAGES.viewOnly, undefined, "VIEW_ONLY");
+  return { gym, role: "OWNER", viewOnly: true };
+}
+
 /** Loads the gym named by `:gymId` and the caller's role in it. `roles` limits who may continue. */
 export function requireStaff(roles: readonly StaffRole[] = STAFF_ROLES): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -53,11 +64,16 @@ export function requireStaff(roles: readonly StaffRole[] = STAFF_ROLES): Middlew
     )
       .bind(gymId, user.id)
       .first<GymRow & { staff_role: StaffRole }>();
-    if (!row) throw notFound();
-    if (!gymIsOpen(accessOf(row))) throw new ApiError(403, MESSAGES.gymPaused, undefined, "GYM_PAUSED");
-    if (!roles.includes(row.staff_role)) throw forbidden();
-    const { staff_role, ...gym } = row;
-    c.set("staff", { gym, role: staff_role });
+    if (row) {
+      if (!gymIsOpen(accessOf(row))) throw new ApiError(403, MESSAGES.gymPaused, undefined, "GYM_PAUSED");
+      const { staff_role, ...gym } = row;
+      c.set("staff", { gym, role: staff_role, viewOnly: false });
+    } else {
+      const viewer = await viewerContext(c, gymId);
+      if (!viewer) throw notFound();
+      c.set("staff", viewer);
+    }
+    if (!roles.includes(currentStaff(c).role)) throw forbidden();
     await next();
   };
 }
