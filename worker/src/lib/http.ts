@@ -22,6 +22,7 @@ export const MESSAGES = {
   conflict: "This was changed by someone else. Refresh and try again.",
   duplicatePhone: "This phone number is already registered at this gym. Please see the desk.",
   server: "Something went wrong. Please try again.",
+  tooManyRequests: "Too many attempts. Please wait a few minutes and try again.",
   viewOnly: "You are only looking at this gym. Its own team makes the changes.",
   gymPaused: "This gym's GymDesk account is paused. Please contact GymDesk support.",
   gymClosedToPublic: "This gym isn't taking sign-ups or check-ins right now. Please contact the desk.",

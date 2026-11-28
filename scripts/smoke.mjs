@@ -444,6 +444,25 @@ for (const path of ["/api/auth/config", "/", "/no-such-page"]) {
   const res = await fetch(`${BASE}${path}`);
   ok(res.headers.get("x-frame-options") === "DENY" && /frame-ancestors 'none'/.test(res.headers.get("content-security-policy") ?? "") && res.headers.get("x-content-type-options") === "nosniff", `${path} cannot be put in a frame and is not type-sniffed`);
 }
+// Request limits: a flood gets 429, and nobody else is affected. Locally there is no network header, so only these calls carry one.
+const floodIp = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
+const floodFrom = async (client, ip, path, count) => {
+  const statuses = [];
+  for (let i = 0; i < count; i++) {
+    const res = await fetch(`${BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: client.cookie, "CF-Connecting-IP": ip }, body: "{}" });
+    statuses.push(res.status);
+  }
+  return statuses;
+};
+let flood = await floodFrom(outsider, floodIp, "/api/public/claim/not-a-real-token", 31);
+ok(flood.slice(0, 30).every((s) => s === 410) && flood[30] === 429, "the 31st claim attempt from one network in ten minutes is refused", flood.slice(28));
+flood = await floodFrom(outsider, `${floodIp}.x`, "/api/public/claim/not-a-real-token", 3);
+ok(flood.every((s) => s === 410), "another network is not affected by that flood", flood);
+const floodUser = await new Client("Flooder").login(`flood-${RUN}@gymdesk.test`);
+flood = await floodFrom(floodUser, "198.51.100.251", `/api/public/gyms/${slug}-new/register`, 21);
+ok(flood.slice(0, 20).every((s) => s === 400) && flood[20] === 429, "the 21st sign-up attempt from one account in an hour is refused", flood.slice(18));
+r = await outsider.post("/api/public/claim/not-a-real-token", {});
+ok(r.status === 410, "everyone else's own requests still work after those floods", r.status);
 const crossOrigin = await fetch(`${BASE}${G}/members`, { email: `auto3-${RUN}@gymdesk.test`, method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example", Cookie: newOwner.cookie }, body: "{}" });
 ok(crossOrigin.status === 403, "a request from another website is refused even with the owner's cookie");
 
